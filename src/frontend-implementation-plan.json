@@ -1,6 +1,39 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Admin dashboard (no-op)",
-  "requirements": []
+  "title": "Remove selected main-page container elements by XPath",
+  "requirements": [
+    {
+      "id": "REQ-3",
+      "summary": "Stop rendering the selected container element at XPath `/html[1]/body[1]/div[1]/div[1]/main[1]/div[1]/div[1]` (and its subtree) without affecting other UI.",
+      "acceptanceCriteria": [
+        "The element at XPath `/html[1]/body[1]/div[1]/div[1]/main[1]/div[1]/div[1]` is no longer present in the DOM at runtime.",
+        "No blank/extra spacing remains where the removed element used to be (layout reflows cleanly).",
+        "No console errors are introduced by the removal."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/CartPage.tsx",
+          "operation": "modify",
+          "description": "Identify the JSX block that renders the DOM node matching XPath `/html[1]/body[1]/div[1]/div[1]/main[1]/div[1]/div[1]` at runtime (likely the first inner container within the page root) and remove it from render output (return a fragment / render remaining siblings directly) so the node and its subtree are not rendered and no extra spacing remains."
+        }
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "summary": "Stop rendering the nested selected element at XPath `/html[1]/body[1]/div[1]/div[1]/main[1]/div[1]/div[1]/div[2]` (and its subtree) without affecting other UI.",
+      "acceptanceCriteria": [
+        "The element at XPath `/html[1]/body[1]/div[1]/div[1]/main[1]/div[1]/div[1]/div[2]` is no longer present in the DOM at runtime.",
+        "No blank/extra spacing remains where the removed element used to be (layout reflows cleanly).",
+        "No console errors are introduced by the removal."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/CartPage.tsx",
+          "operation": "modify",
+          "description": "Within the same parent container targeted by REQ-3, locate the specific child node that corresponds to `/div[2]` in XPath `/html[1]/body[1]/div[1]/div[1]/main[1]/div[1]/div[1]/div[2]` (the second direct div child of that container, if present at runtime) and remove it from rendering while keeping the rest of the page unchanged and ensuring layout reflows without leaving gaps."
+        }
+      ]
+    }
+  ]
 }

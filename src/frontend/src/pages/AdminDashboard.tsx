@@ -20,7 +20,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 const SINGLE_RESTAURANT_UUID = 'snr-food-court';
 
 export default function AdminDashboard() {
-  const { data: isAdmin, isLoading: isAdminLoading } = useIsCallerAdmin();
+  const { data: isAdmin, isLoading: isAdminLoading, isError } = useIsCallerAdmin();
   const { data: restaurant } = useGetSingleRestaurant();
   const { data: menuItems = [] } = useGetAllMenuItems();
   const { data: orders = [] } = useGetAllOrders();
@@ -94,8 +94,8 @@ export default function AdminDashboard() {
     return acc;
   }, {} as Record<string, MenuItem[]>);
 
-  // Show loading state while checking admin status
-  if (isAdminLoading) {
+  // Show loading state while checking admin status (but not on errors)
+  if (isAdminLoading && !isError) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-center min-h-[400px]">
@@ -108,8 +108,8 @@ export default function AdminDashboard() {
     );
   }
 
-  // Show access denied if not admin
-  if (!isAdmin) {
+  // Show access denied only when verification succeeded and user is not admin
+  if (!isAdminLoading && !isError && !isAdmin) {
     return (
       <div className="container mx-auto px-4 py-8">
         <Alert variant="destructive" className="max-w-2xl mx-auto mt-8">

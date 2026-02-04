@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import { ShoppingCart, Trash2, ArrowLeft } from 'lucide-react';
+import { ShoppingCart, Trash2 } from 'lucide-react';
 import type { Page } from '../App';
 
 interface CartPageProps {
@@ -67,13 +67,6 @@ export default function CartPage({ onNavigate }: CartPageProps) {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-6">
-        <Button variant="ghost" onClick={() => onNavigate('home')}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Continue Shopping
-        </Button>
-      </div>
-
       <h1 className="text-3xl font-bold mb-8 flex items-center gap-3">
         <ShoppingCart className="h-8 w-8" />
         Your Cart

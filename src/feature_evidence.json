@@ -1,4 +1,45 @@
 {
   "kind": "feature_evidence_report",
-  "features": []
+  "features": [
+    {
+      "featureId": "feature-remove-do-not-render-the-ui-element-located-at-xpath-html-1-body-1-div-1-div-1-main-1-div-1-div-1-from-the-page-apply-the-change-only-to-this-selected-element-and-its-subtree-and-do-not-modify-other-parts-of-the-ui",
+      "featureTitle": "Remove (do not render) the UI element located at XPath `/html[1]/body[1]/div[1]/div[1]/main[1]/div[1]/div[1]` from the page. Apply the change only to this selected element (and its subtree) and do not modify other parts of the UI.",
+      "files": [
+        "frontend/src/pages/CartPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-3"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-remove-do-not-render-the-ui-element-located-at-xpath-html-1-body-1-div-1-div-1-main-1-div-1-div-1-div-2-from-the-page-apply-the-change-only-to-this-selected-element-and-its-subtree-and-do-not-modify-other-parts-of-the-ui",
+      "featureTitle": "Remove (do not render) the UI element located at XPath `/html[1]/body[1]/div[1]/div[1]/main[1]/div[1]/div[1]/div[2]` from the page. Apply the change only to this selected element (and its subtree) and do not modify other parts of the UI.",
+      "files": [
+        "frontend/src/pages/CartPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-4"
+      ],
+      "confidence": "high"
+    }
+  ]
 }

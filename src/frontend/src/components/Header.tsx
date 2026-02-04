@@ -11,7 +11,8 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 
 interface HeaderProps {
   currentPage: Page;
@@ -22,12 +23,28 @@ export default function Header({ currentPage, onNavigate }: HeaderProps) {
   const { login, clear, loginStatus, identity } = useInternetIdentity();
   const queryClient = useQueryClient();
   const { data: cartItems = [] } = useGetCartItems();
-  const { data: isAdmin = false } = useIsCallerAdmin();
+  const { data: isAdmin = false, isError, error } = useIsCallerAdmin();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [hasShownAdminError, setHasShownAdminError] = useState(false);
 
   const isAuthenticated = !!identity;
   const disabled = loginStatus === 'logging-in';
   const cartCount = cartItems.length;
+
+  // Show toast when admin verification fails
+  useEffect(() => {
+    if (isAuthenticated && isError && !hasShownAdminError) {
+      toast.error('Could not verify admin access. Try again.');
+      setHasShownAdminError(true);
+    }
+  }, [isAuthenticated, isError, hasShownAdminError]);
+
+  // Reset error flag when user logs out
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setHasShownAdminError(false);
+    }
+  }, [isAuthenticated]);
 
   const handleAuth = async () => {
     if (isAuthenticated) {
@@ -84,16 +101,14 @@ export default function Header({ currentPage, onNavigate }: HeaderProps) {
                   <Package className="h-4 w-4 mr-2" />
                   Orders
                 </Button>
-                {isAdmin && (
-                  <Button
-                    variant={currentPage === 'admin' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => onNavigate('admin')}
-                  >
-                    <Shield className="h-4 w-4 mr-2" />
-                    Admin
-                  </Button>
-                )}
+                <Button
+                  variant={currentPage === 'admin' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => onNavigate('admin')}
+                >
+                  <Shield className="h-4 w-4 mr-2" />
+                  Admin
+                </Button>
               </>
             )}
           </nav>
@@ -129,16 +144,14 @@ export default function Header({ currentPage, onNavigate }: HeaderProps) {
                         <Package className="h-4 w-4 mr-2" />
                         Orders
                       </Button>
-                      {isAdmin && (
-                        <Button
-                          variant={currentPage === 'admin' ? 'default' : 'ghost'}
-                          className="justify-start"
-                          onClick={() => handleMobileNavigate('admin')}
-                        >
-                          <Shield className="h-4 w-4 mr-2" />
-                          Admin
-                        </Button>
-                      )}
+                      <Button
+                        variant={currentPage === 'admin' ? 'default' : 'ghost'}
+                        className="justify-start"
+                        onClick={() => handleMobileNavigate('admin')}
+                      >
+                        <Shield className="h-4 w-4 mr-2" />
+                        Admin
+                      </Button>
                     </>
                   )}
                 </nav>

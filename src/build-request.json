@@ -1,14 +1,54 @@
 {
   "kind": "build_request",
-  "title": "Add admin dashboard",
+  "title": "Remove selected main-page container elements",
   "priority": "normal",
-  "requirements": [],
+  "requirements": [
+    {
+      "id": "REQ-3",
+      "text": "Remove (do not render) the UI element located at XPath `/html[1]/body[1]/div[1]/div[1]/main[1]/div[1]/div[1]` from the page. Apply the change only to this selected element (and its subtree) and do not modify other parts of the UI.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "remove",
+          "/html[1]/body[1]/div[1]/div[1]/main[1]/div[1]/div[1]"
+        ]
+      },
+      "acceptanceCriteria": [
+        "The element at XPath `/html[1]/body[1]/div[1]/div[1]/main[1]/div[1]/div[1]` is no longer present in the DOM at runtime.",
+        "No blank/extra spacing remains where the removed element used to be (layout reflows cleanly).",
+        "No console errors are introduced by the removal."
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Remove (do not render) the UI element located at XPath `/html[1]/body[1]/div[1]/div[1]/main[1]/div[1]/div[1]/div[2]` from the page. Apply the change only to this selected element (and its subtree) and do not modify other parts of the UI.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "remove",
+          "/html[1]/body[1]/div[1]/div[1]/main[1]/div[1]/div[1]/div[2]"
+        ]
+      },
+      "acceptanceCriteria": [
+        "The element at XPath `/html[1]/body[1]/div[1]/div[1]/main[1]/div[1]/div[1]/div[2]` is no longer present in the DOM at runtime.",
+        "No blank/extra spacing remains where the removed element used to be (layout reflows cleanly).",
+        "No console errors are introduced by the removal."
+      ]
+    }
+  ],
   "constraints": [
-    "Do not add a new Admin Dashboard feature because an Admin Dashboard UI with RBAC gating is already implemented in the current project (frontend/src/pages/AdminDashboard.tsx) and is already reachable via the existing admin navigation entry in frontend/src/components/Header.tsx."
+    "Apply changes ONLY to the two selected elements identified by the provided XPaths; do not alter unrelated UI or behavior.",
+    "Use English for any user-facing text."
   ],
   "nonGoals": [
-    "Do not redesign or extend the existing Admin Dashboard functionality (menu management, all-orders management, live orders view) unless explicitly requested.",
-    "Do not add new admin authentication mechanisms beyond the existing Internet Identity + RBAC gating unless explicitly requested."
+    "Do not add new features or new pages.",
+    "Do not modify backend canister logic."
   ],
   "imageRequirements": {
     "required": [],
