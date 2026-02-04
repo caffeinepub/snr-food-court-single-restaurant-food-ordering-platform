@@ -7,13 +7,11 @@ import Iter "mo:core/Iter";
 import Runtime "mo:core/Runtime";
 import Nat "mo:core/Nat";
 import Order "mo:core/Order";
+import Time "mo:core/Time";
 import Storage "blob-storage/Storage";
 import MixinStorage "blob-storage/Mixin";
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
-import Time "mo:core/Time";
-
-// No persistent changes. No migration needed.
 
 actor {
   type CuisineType = {
@@ -223,13 +221,12 @@ actor {
     ),
     (
       "chicken-manchuria",
-      // Changed name to uppercase "M", price = 159
       {
         uuid = "chicken-manchuria";
         restaurantUuid = SINGLE_RESTAURANT_UUID;
         name = "Chicken Manchuria";
         description = "Crispy chicken tossed in spicy Indo-Chinese sauce";
-        price = 159;
+        price = 149;
         category = "Snacks";
         image = null;
         isAvailable = true;
@@ -283,10 +280,11 @@ actor {
   let orderStatusTracking = Map.empty<Text, OrderStatus>();
   let profiles = Map.empty<Principal, FoodCourtProfile>();
   let liveOrders = List.empty<LiveOrder>();
-
   include MixinStorage();
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
+
+  var nextOrderId = 1;
 
   public query ({ caller }) func getSingleRestaurant() : async Restaurant {
     SINGLE_RESTAURANT_INFO;
@@ -404,8 +402,7 @@ actor {
     let items = cart.map(func(item) { { uuid = item.menuItemUuid; quantity = item.quantity; price = item.price } });
 
     let totalPrice = calculateTotalPrice(cart) + FIXED_DELIVERY_FEE;
-
-    let orderId = "order-" # totalPrice.toText();
+    let orderId = "order-" # nextOrderId.toText();
     let currentTime = Time.now();
     let order : Order = {
       uuid = orderId;
@@ -436,6 +433,8 @@ actor {
       status = #pending;
     };
     liveOrders.add(newLiveOrder);
+
+    nextOrderId += 1;
 
     orderId;
   };
@@ -639,7 +638,7 @@ actor {
       case (?cart) { cart };
     };
 
-    // Create result with original items
+    // Create mutable result with original items
     let mutableCart = List.fromArray<CartItem>(existingCart);
     // Process edits
     for (item in items.values()) {
@@ -716,4 +715,3 @@ actor {
     SINGLE_RESTAURANT_INFO.phone;
   };
 };
-

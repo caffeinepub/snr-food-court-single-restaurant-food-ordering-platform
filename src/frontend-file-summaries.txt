@@ -1,7 +1,7 @@
 {
   "frontend/src/App.tsx": "Main application component managing page navigation (home, cart, orders, admin), authentication state, and profile setup modal with theme provider integration for single restaurant.",
   "frontend/src/hooks/useQueries.ts": "Custom React Query hooks for all backend operations including menu items, cart, orders, user profiles, and admin functions with proper error handling, cache invalidation, and a useGetAllActiveOrders hook that accepts an isAdmin parameter to conditionally enable polling only for admin users.",
-  "frontend/src/components/Header.tsx": "Sticky header component with logo, navigation menu (Menu, Orders, Admin), cart indicator with item count, and authentication controls.",
+  "frontend/src/components/Header.tsx": "Sticky header component with logo, desktop navigation menu (Menu, Orders, Admin), mobile navigation drawer with conditional Admin option for authenticated admins, cart indicator with item count, and authentication controls.",
   "frontend/src/components/Footer.tsx": "Footer component with branding, contact information (phone, address, website) fetched from restaurant data, social media icons, and caffeine.ai attribution.",
   "frontend/src/components/ProfileSetupModal.tsx": "Modal dialog for first-time user profile setup requiring name, email, phone, and delivery address.",
   "frontend/src/pages/HomePage.tsx": "Home page displaying the single restaurant's complete menu with search, category filters, add to cart functionality, menu items showing prices in Indian Rupees (₹) format with specific images mapped for menu items including Chilly Chicken and Chicken 555 using their respective photo assets, and guaranteed display of required menu items via utility merge.",

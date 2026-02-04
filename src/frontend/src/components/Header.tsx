@@ -1,9 +1,17 @@
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import { useGetCartItems, useIsCallerAdmin } from '../hooks/useQueries';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, User, Home, Package, Shield } from 'lucide-react';
+import { ShoppingCart, User, Home, Package, Shield, Menu } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Page } from '../App';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
+import { useState } from 'react';
 
 interface HeaderProps {
   currentPage: Page;
@@ -15,6 +23,7 @@ export default function Header({ currentPage, onNavigate }: HeaderProps) {
   const queryClient = useQueryClient();
   const { data: cartItems = [] } = useGetCartItems();
   const { data: isAdmin = false } = useIsCallerAdmin();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isAuthenticated = !!identity;
   const disabled = loginStatus === 'logging-in';
@@ -38,6 +47,11 @@ export default function Header({ currentPage, onNavigate }: HeaderProps) {
     }
   };
 
+  const handleMobileNavigate = (page: Page) => {
+    onNavigate(page);
+    setMobileMenuOpen(false);
+  };
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4 py-4">
@@ -50,6 +64,7 @@ export default function Header({ currentPage, onNavigate }: HeaderProps) {
             </div>
           </div>
 
+          {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-2">
             <Button
               variant={currentPage === 'home' ? 'default' : 'ghost'}
@@ -84,6 +99,52 @@ export default function Header({ currentPage, onNavigate }: HeaderProps) {
           </nav>
 
           <div className="flex items-center gap-2">
+            {/* Mobile Menu */}
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="sm" className="md:hidden">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left">
+                <SheetHeader>
+                  <SheetTitle>Menu</SheetTitle>
+                </SheetHeader>
+                <nav className="flex flex-col gap-2 mt-6">
+                  <Button
+                    variant={currentPage === 'home' ? 'default' : 'ghost'}
+                    className="justify-start"
+                    onClick={() => handleMobileNavigate('home')}
+                  >
+                    <Home className="h-4 w-4 mr-2" />
+                    Menu
+                  </Button>
+                  {isAuthenticated && (
+                    <>
+                      <Button
+                        variant={currentPage === 'orders' ? 'default' : 'ghost'}
+                        className="justify-start"
+                        onClick={() => handleMobileNavigate('orders')}
+                      >
+                        <Package className="h-4 w-4 mr-2" />
+                        Orders
+                      </Button>
+                      {isAdmin && (
+                        <Button
+                          variant={currentPage === 'admin' ? 'default' : 'ghost'}
+                          className="justify-start"
+                          onClick={() => handleMobileNavigate('admin')}
+                        >
+                          <Shield className="h-4 w-4 mr-2" />
+                          Admin
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </nav>
+              </SheetContent>
+            </Sheet>
+
             {isAuthenticated && (
               <Button
                 variant={currentPage === 'cart' ? 'default' : 'outline'}

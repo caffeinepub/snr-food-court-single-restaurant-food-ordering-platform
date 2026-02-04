@@ -1,27 +1,6 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Chicken Manchuria menu card photo asset wiring",
-  "requirements": [
-    {
-      "id": "REQ-4",
-      "summary": "Add Chicken Manchuria generated photo asset and ensure the Home page menu card uses it via the existing menuItemImageMap (not a fallback).",
-      "acceptanceCriteria": [
-        "The file frontend/public/assets/generated/chicken-manchuria.dim_300x300.jpg exists in the build output.",
-        "On the Home page, the menu item with uuid \"chicken-manchuria\" renders using /assets/generated/chicken-manchuria.dim_300x300.jpg (not a fallback image)."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/public/assets/generated/chicken-manchuria.dim_300x300.jpg",
-          "operation": "create",
-          "description": "Add the required generated image asset at frontend/public/assets/generated/chicken-manchuria.dim_300x300.jpg so it is available as a static file in the build output."
-        },
-        {
-          "path": "frontend/src/pages/HomePage.tsx",
-          "operation": "modify",
-          "description": "Confirm/ensure menuItemImageMap contains an entry for uuid \"chicken-manchuria\" pointing to \"/assets/generated/chicken-manchuria.dim_300x300.jpg\", and that Home page cards always use getMenuItemImage(item) so this item does not fall back to a generic image."
-        }
-      ]
-    }
-  ]
+  "title": "Admin dashboard (no-op)",
+  "requirements": []
 }

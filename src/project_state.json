@@ -1,43 +1,43 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 3,
-  "summary": "SNR Food Court is a single-restaurant food ordering web app built for the Internet Computer. A Motoko canister backend exposes a fixed restaurant profile, a menu catalog (admin-managed CRUD), per-user carts, order placement and tracking (including an admin “live/active orders” view), and per-user profile storage. The React + TypeScript frontend authenticates users via Internet Identity, communicates with the canister through a generated actor, uses TanStack React Query for caching/fetching and automatic polling, Shadcn UI/Tailwind for UI, and Sonner toasts for user feedback. Admin access is bootstrapped by calling an initialization endpoint with a secret token read from the URL hash and validated against an environment variable inside the canister; the user additionally requested a simple password gate for viewing the admin dashboard.",
+  "projectStateVersion": 6,
+  "summary": "SNR Food Court Food Delivery Platform is a single-restaurant food ordering web app built for the Internet Computer. A Motoko canister backend exposes a fixed restaurant profile, a menu catalog (seeded + admin-managed), per-user carts, order placement with a fixed delivery fee, per-user order history, and an admin “live orders” view with status updates. A React + TypeScript SPA frontend authenticates users via Internet Identity, creates an identity-backed canister actor, centralizes backend access through TanStack React Query hooks, and provides customer and admin UIs using Tailwind/Shadcn UI with Sonner toasts for feedback. Admin access is bootstrapped by calling a canister initialization method with a secret token read from the URL hash and compared against a canister environment variable.",
   "existing_features": [
     {
       "id": "IF-1",
-      "title": "Internet Identity authentication context",
+      "title": "Internet Identity authentication provider",
       "synonyms": [
         "Internet Identity",
         "AuthClient",
-        "InternetIdentityProvider",
-        "login/logout"
+        "login/logout",
+        "InternetIdentityProvider"
       ],
-      "description": "Provides an authentication context wrapping @dfinity/auth-client to load persisted sessions, perform Internet Identity login, expose login status flags, and logout/clear identity state.",
+      "description": "Provides a React context around @dfinity/auth-client to initialize/load persisted identities, perform login against the configured II provider, expose detailed login status flags, and logout/clear identity state.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-2",
-      "title": "Backend actor creation with identity switching",
+      "title": "Backend actor creation with identity switching and access-control initialization",
       "synonyms": [
         "useActor",
         "createActorWithConfig",
         "identity-backed actor",
-        "anonymous actor"
+        "_initializeAccessControlWithSecret"
       ],
-      "description": "Creates and caches a canister actor keyed by the current principal; uses an anonymous actor when unauthenticated and an identity-backed actor when authenticated. When the actor changes, React Query caches are invalidated and refetched.",
+      "description": "Creates and caches a canister actor keyed by the current principal. Uses an anonymous actor when unauthenticated and an identity-backed actor when authenticated; on authenticated actor creation it calls the backend RBAC initialization method with a secret token from the URL hash/session.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-3",
-      "title": "Admin/user role initialization via secret token",
+      "title": "Admin bootstrap via secret token and environment variable",
       "synonyms": [
-        "_initializeAccessControlWithSecret",
         "CAFFEINE_ADMIN_TOKEN",
-        "admin bootstrap"
+        "RBAC bootstrap",
+        "first admin assignment"
       ],
-      "description": "On authenticated actor creation, the frontend extracts an admin token (caffeineAdminToken) and calls a backend initialization method. The backend compares it to an environment variable token and assigns the first valid caller as admin; all other registered callers become users.",
+      "description": "Backend RBAC can be initialized by comparing a user-provided secret to the CAFFEINE_ADMIN_TOKEN environment variable; the first matching caller is assigned #admin, otherwise new callers become #user.",
       "reqIds": [],
       "version": 1
     },
@@ -45,324 +45,322 @@
       "id": "IF-4",
       "title": "Secure secret extraction from URL hash with session persistence",
       "synonyms": [
-        "urlParams",
-        "getSecretParameter",
         "getSecretFromHash",
-        "sessionStorage"
+        "getSecretParameter",
+        "sessionStorage",
+        "clearParamFromHash"
       ],
-      "description": "Utilities read sensitive parameters from the URL hash fragment, persist them in sessionStorage, and remove them from the URL to reduce leakage (history/referrer/access logs).",
+      "description": "Utilities to extract sensitive parameters from the URL hash, persist them in sessionStorage for the session, and remove the secret from the URL using history.replaceState to reduce leakage.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-5",
-      "title": "Typed React Query hooks for backend operations",
+      "title": "Typed React Query hooks for canister API (queries and mutations)",
       "synonyms": [
         "useQueries",
-        "TanStack React Query hooks",
-        "queries/mutations"
+        "TanStack React Query",
+        "cache invalidation"
       ],
-      "description": "Implements typed query/mutation hooks for restaurant data, menu items, cart, orders, user profiles, and admin checks. Mutations invalidate relevant cache keys and show success/error toasts via Sonner.",
+      "description": "Implements query/mutation hooks for restaurant info, menu items, cart, orders, user profiles, and admin checks. Mutations invalidate the appropriate caches and show success/error toasts via Sonner.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-6",
-      "title": "Single restaurant profile retrieval",
+      "title": "Single restaurant profile API",
       "synonyms": [
         "getSingleRestaurant",
         "single-tenant restaurant"
       ],
-      "description": "Backend exposes a fixed single restaurant profile (UUID \"snr-food-court\"); frontend fetches and displays its name/description/contact details across pages/components.",
+      "description": "Backend exposes a fixed restaurant profile (uuid: snr-food-court) which the frontend uses for branding and display of address/phone/website details.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-7",
-      "title": "Menu browsing with search, category filtering, grouping, and availability UI",
+      "title": "Menu catalog: seeded items + public read APIs",
       "synonyms": [
-        "HomePage",
-        "menu grid",
-        "category filter",
-        "search"
+        "menu seed data",
+        "getAllMenuItems",
+        "getMenuItem"
       ],
-      "description": "Customer menu page supports text search over name/description, category filtering, grouping by category, and availability overlay/disabled add-to-cart for unavailable items.",
+      "description": "Backend maintains a menu items map seeded with initial items and exposes APIs to list all menu items and fetch a single item by UUID.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-8",
-      "title": "Menu item image mapping with fallbacks",
+      "title": "Admin menu item management (add, delete, update)",
       "synonyms": [
-        "menuItemImageMap",
-        "static assets",
-        "fallback images"
+        "addMenuItem",
+        "deleteMenuItem",
+        "updateMenuItem",
+        "menu CRUD"
       ],
-      "description": "Maps specific menu item UUIDs to static generated images and rotates through a fallback image list for items without a specific mapping.",
+      "description": "Admin-only endpoints to add/delete/update menu items, with validation that restaurantUuid matches the single-restaurant constraint. Frontend admin dashboard supports adding and deleting items.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-9",
-      "title": "Required menu item injection on the frontend",
+      "title": "Menu browsing UI with search, category filtering, availability overlays, and images",
       "synonyms": [
-        "REQUIRED_MENU_ITEMS",
-        "ensureRequiredMenuItems"
+        "HomePage",
+        "search",
+        "category filter",
+        "availability badge",
+        "image fallback"
       ],
-      "description": "Ensures predefined menu items (e.g., \"Chilly Chicken\") always appear by merging required items into the fetched menu list if missing from the backend response.",
+      "description": "Frontend renders menu items with a hero search input, category filter, category-grouped sections, item cards with availability overlay, and image selection via UUID mapping with rotating fallbacks.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-10",
-      "title": "Cart management (add/remove/clear)",
+      "title": "Required menu item injection on the frontend",
       "synonyms": [
-        "cart",
-        "addToCart",
-        "removeFromCart",
-        "clearCart"
+        "REQUIRED_MENU_ITEMS",
+        "ensureRequiredMenuItems"
       ],
-      "description": "Supports per-user cart storage in the backend and frontend flows to add items, remove items by menuItemUuid, and clear the cart, with cache invalidation and toasts.",
+      "description": "Ensures certain menu items always appear by merging a required list into fetched menu data when missing from backend responses.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-11",
-      "title": "Checkout form and order placement with fixed delivery fee",
+      "title": "Per-user cart management (add/remove/list/clear)",
       "synonyms": [
-        "CartPage",
-        "placeOrder",
-        "delivery fee"
+        "getCartItems",
+        "addToCart",
+        "removeFromCart",
+        "clearCart"
       ],
-      "description": "Cart/checkout page calculates subtotal, adds a fixed ₹25 delivery fee, collects customer name/phone/address and optional instructions, places an order, and navigates to the Orders page on success.",
+      "description": "Backend stores carts per principal and provides endpoints to add, remove, list, and clear cart items (requires #user). Frontend shows cart counts and provides cart item removal and checkout flow.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-12",
-      "title": "User profile setup modal and persistence",
+      "title": "Checkout and order placement with fixed delivery fee",
       "synonyms": [
-        "FoodCourtProfile",
-        "ProfileSetupModal",
-        "getCallerUserProfile",
-        "saveCallerUserProfile"
+        "placeOrder",
+        "DELIVERY_FEE",
+        "FIXED_DELIVERY_FEE"
       ],
-      "description": "Prompts authenticated users without a stored profile to complete name/email/phone/address in a blocking modal and persists it in the backend; checkout fields are prefilled from the stored profile.",
+      "description": "Cart page collects customer name/phone/address and optional notes, computes totals including a fixed ₹25 delivery fee, and places orders via the backend which clears the cart on success.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-13",
-      "title": "User order history page with status badges and icons",
+      "title": "Unique order ID generation with incremental counter",
       "synonyms": [
-        "OrdersPage",
-        "my orders",
-        "order status UI"
+        "nextOrderId",
+        "order-<n> ids"
       ],
-      "description": "Shows the caller’s orders sorted by most recent, including totals, delivery address, optional notes, and a color/icon-coded status badge (pending/preparing/out for delivery/delivered/cancelled).",
+      "description": "Backend generates order IDs using an incrementing counter (order-1, order-2, ...) and timestamps orders using Time.now().",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-14",
-      "title": "Role-based navigation header with cart badge and auth controls",
+      "title": "User order history UI with status badges/icons",
       "synonyms": [
-        "Header",
-        "navigation",
-        "cart count badge"
+        "OrdersPage",
+        "getUserOrders",
+        "status UI"
       ],
-      "description": "Sticky header provides navigation (Menu/Orders/Admin) based on authentication and admin status, shows a cart item count badge, and provides login/logout. Logout clears React Query cache and returns to home.",
+      "description": "Frontend displays the caller’s orders sorted by newest first, showing totals, delivery address, optional notes, and a color/icon-coded status label (pending/preparing/out for delivery/delivered/cancelled).",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-15",
-      "title": "Admin dashboard with menu and order management",
+      "title": "User profile persistence with forced onboarding modal",
       "synonyms": [
-        "AdminDashboard",
-        "isCallerAdmin",
-        "admin tabs"
+        "FoodCourtProfile",
+        "getCallerUserProfile",
+        "saveCallerUserProfile",
+        "ProfileSetupModal"
       ],
-      "description": "Admin-only dashboard gated by an isCallerAdmin check. Provides tabs for Live Orders monitoring, Menu Items add/delete, and All Orders listing with status updates and cancellation confirmation.",
+      "description": "Backend stores a per-user profile (name/email/phone/address). Frontend forces authenticated users with no profile to complete a modal; checkout fields are prefilled from the stored profile.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-16",
-      "title": "Admin live/active orders monitoring with polling and new-order notifications",
+      "title": "Admin dashboard UI with RBAC gating",
       "synonyms": [
-        "LiveOrdersView",
-        "getAllActiveOrders",
-        "polling",
-        "new order toast"
+        "AdminDashboard",
+        "isCallerAdmin",
+        "access denied UI"
       ],
-      "description": "Displays active (non-delivered, non-cancelled) orders, auto-refreshes every 5 seconds (including in background), formats nanosecond timestamps, allows status updates/cancellation, and shows a toast only when genuinely new orders appear after the first successful fetch.",
-      "reqIds": [
-        "REQ-1",
-        "REQ-2"
-      ],
+      "description": "Admin-only dashboard that verifies admin permissions before showing management tabs; non-admin users see an access denied alert.",
+      "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-17",
-      "title": "Backend RBAC and role management APIs",
+      "title": "Live orders tracking and admin active-orders query",
       "synonyms": [
-        "AccessControl",
-        "MixinAuthorization",
-        "getCallerUserRole",
-        "assignCallerUserRole",
-        "isCallerAdmin"
+        "liveOrders",
+        "getAllActiveOrders",
+        "active-only filtering"
       ],
-      "description": "Implements user roles (#admin/#user/#guest), initialization using an env var admin token, admin-only role assignment, and permission enforcement across protected endpoints.",
+      "description": "Backend tracks placed orders in a liveOrders list and exposes an admin-only query returning only non-delivered and non-cancelled active orders.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-18",
-      "title": "Backend menu catalog APIs (query + admin CRUD + filters)",
+      "title": "Live orders polling, status updates, cancellation, and new-order notifications",
       "synonyms": [
-        "getAllMenuItems",
-        "getMenuItem",
-        "addMenuItem",
-        "deleteMenuItem",
-        "updateMenuItem",
-        "getMenuByCategory",
-        "searchMenuByName",
-        "filterMenuByPriceRange"
+        "LiveOrdersView",
+        "refetchInterval",
+        "updateOrderStatus",
+        "delta detection"
       ],
-      "description": "Provides menu item listing/retrieval; admin-only add/delete/update (field-wise updates including optional image blob reference); and helper queries for category, name search, and price-range filtering.",
+      "description": "Admin Live Orders UI polls every 5 seconds (including background), allows status updates/cancellation, resolves item names from the menu list, formats timestamps, and triggers toasts only for newly appearing orders after the initial load.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-19",
-      "title": "Backend cart and order lifecycle APIs",
+      "title": "Admin order management: view all orders and update status",
       "synonyms": [
-        "getCartItems",
-        "addToCart",
-        "removeFromCart",
-        "clearCart",
-        "placeOrder",
-        "getUserOrders",
         "getAllOrders",
-        "getOrder"
+        "order status management",
+        "cancel order"
       ],
-      "description": "Implements per-user cart storage, order placement from cart with timestamp and fixed delivery fee, user order retrieval, admin retrieval of all orders, and ownership/admin checks for fetching a single order.",
+      "description": "Admin endpoints and UI to view all orders including customer details and to update order status. UI includes a cancel flow with confirmation (disabled for delivered/cancelled).",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-20",
-      "title": "Backend live order tracking and active orders query",
+      "title": "RBAC helper endpoints (role query and role assignment)",
       "synonyms": [
-        "liveOrders",
-        "getAllActiveOrders",
-        "updateOrderStatus"
+        "getCallerUserRole",
+        "assignCallerUserRole",
+        "isCallerAdmin"
       ],
-      "description": "Maintains a liveOrders list updated on order placement and status updates; exposes an admin-only query returning only non-delivered and non-cancelled active orders.",
+      "description": "Backend exposes endpoints to query the caller’s role, check admin status, and assign roles to principals (admin-only assignment). Frontend uses isCallerAdmin to gate admin UI and enable admin-only polling.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-21",
-      "title": "Blob storage administration mixin (gateway sync, dead blob pruning, cycles refill)",
+      "title": "Menu helper queries and per-user search history API",
+      "synonyms": [
+        "getMenuByCategory",
+        "searchMenuByName",
+        "filterMenuByPriceRange",
+        "addSearchHistory"
+      ],
+      "description": "Backend provides helper queries for category filtering, name search, and price-range filtering, plus a per-user endpoint to append search terms to a search history list (requires #user).",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-22",
+      "title": "Blob storage maintenance mixin and cycle top-up integration",
       "synonyms": [
         "_caffeineStorageUpdateGatewayPrincipals",
         "_caffeineStorageBlobsToDelete",
         "_caffeineStorageConfirmBlobDeletion",
         "_caffeineStorageRefillCashier"
       ],
-      "description": "Includes canister endpoints to refresh authorized storage gateway principals, list/prune dead blobs and trigger GC, and refill/top-up a cashier canister with cycles; also provides a stub upload certificate response.",
+      "description": "Implements storage maintenance endpoints: refresh authorized gateway principals from a cashier canister, check blob liveness, list dead blobs for deletion, confirm pruning + trigger GC, and refill/top-up the cashier with cycles (cashier-only).",
       "reqIds": [],
       "version": 1
     },
     {
-      "id": "IF-22",
-      "title": "SPA page navigation without URL routing",
+      "id": "IF-23",
+      "title": "Responsive navigation with cart indicator and conditional admin entry",
       "synonyms": [
-        "App currentPage state",
-        "home/cart/orders/admin"
+        "Header",
+        "mobile drawer menu",
+        "cart badge",
+        "Admin link gating"
       ],
-      "description": "Implements in-app navigation by tracking a currentPage state in App.tsx and conditionally rendering Home, Cart, Orders, and Admin views (no router).",
+      "description": "Header provides desktop navigation and a mobile sheet/drawer. Cart button shows a count badge, Orders/Cart appear only when authenticated, and Admin appears only for admins.",
       "reqIds": [],
       "version": 1
     },
     {
-      "id": "feature-add-a-food-photo-asset-for-chicken-manchuria-at-frontend-public-assets-generated-chicken-manchuria-dim-300x300-jpg-and-ensure-the-home-page-menu-card-for-uuid-chicken-manchuria-displays-that-image-via-the-existing-menuitemimagemap",
-      "title": "Add a food photo asset for Chicken Manchuria at frontend/public/assets/generated/chicken-manchuria.dim_300x300.jpg and ensure the Home page menu card for uuid \"chicken-manchuria\" displays that image via the existing menuItemImageMap.",
-      "reqIds": [
-        "REQ-4"
+      "id": "IF-24",
+      "title": "Themeable UI foundation and global notifications",
+      "synonyms": [
+        "Tailwind",
+        "Shadcn UI",
+        "next-themes",
+        "Sonner Toaster"
       ],
+      "description": "Global UI foundation includes Tailwind + Shadcn UI components, light/dark mode support via next-themes, and a global Sonner toaster for app-wide notifications.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-25",
+      "title": "State-based SPA page navigation (no router)",
+      "synonyms": [
+        "currentPage state",
+        "App.tsx navigation"
+      ],
+      "description": "App uses local React state to switch between Home, Cart, Orders, and Admin views under a shared Header/Footer layout.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-26",
+      "title": "Canister migration scaffold for upgrade compatibility",
+      "synonyms": [
+        "migration.mo",
+        "with migration = Migration.run"
+      ],
+      "description": "Backend includes a migration module and uses the Motoko migration hook pattern to support state evolution across upgrades (currently initializes a nextOrderId field in the migration schema).",
+      "reqIds": [],
       "version": 1
     }
   ],
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Add menu item: Chicken Manchuria priced at ₹159 with a food photo",
+      "summary": "Add payment method choice at checkout (Online vs Cash on Delivery) and persist/display it in order details for customer + owner/admin views.",
       "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-2",
-      "summary": "Add payment method choice at checkout: Online payment or Cash on Delivery",
+      "summary": "Add an optional passcode gate before showing the Admin Dashboard (requested passcode: 8008448244), in addition to existing Internet Identity/RBAC admin access.",
       "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-3",
-      "summary": "Allow restaurant owner/admin to cancel orders from the owner/admin dashboard",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-4",
-      "summary": "Add a simple password screen to access the Admin Dashboard (password requested: 8008448244)",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-5",
-      "summary": "Update the existing backend menu item with uuid \"chicken-manchuria\" so that it appears in the menu as \"Chicken Manchuria\" priced at ₹159 (price = 159). Ensure the item remains available and continues to belong to the single restaurant \"snr-food-court\".",
-      "reqIds": [
-        "REQ-3"
-      ],
       "status": "pending"
     }
   ],
   "architectural_notes": [
-    "Internet Computer architecture: Motoko canister backend (query/shared methods) + React SPA frontend using a generated candid actor interface.",
-    "Backend composition via Motoko mixins: authorization/RBAC mixin and blob-storage admin mixin are included into the main actor.",
-    "Role-based access control enforced server-side (admin/user/guest); caller roles are assigned on first initialization call and stored in an in-canister map.",
-    "Frontend data access centralized in typed hooks built on @tanstack/react-query; mutations invalidate relevant cache keys and show toast notifications.",
-    "Admin Live Orders implemented via polling (React Query refetchInterval=5000 with background refetch) rather than push/subscriptions.",
-    "Single-tenant domain model: backend hard-codes a single restaurant UUID (\"snr-food-court\") and validates it on writes.",
-    "UI built with Shadcn UI primitives + Tailwind and theme switching via next-themes; notifications via Sonner.",
-    "User requested an additional UI-level password gate before showing the Admin Dashboard (separate from Internet Identity + canister RBAC)."
+    "Internet Computer architecture: Motoko canister (query/shared methods) + React SPA frontend calling via generated actor.",
+    "Backend code composition uses Motoko mixins (authorization/RBAC mixin and blob-storage maintenance mixin).",
+    "Role-based access control (RBAC): principals are assigned #admin or #user; anonymous callers are treated as #guest; admin is bootstrapped via a secret compared to an env var.",
+    "Frontend data layer is centralized in custom hooks built on @tanstack/react-query (keyed caching, conditional enabling, mutation-driven invalidation).",
+    "Admin live orders view uses polling (React Query refetchInterval=5000, background refetch enabled) rather than push updates.",
+    "Single-tenant constraint: backend enforces a single hard-coded restaurant UUID (snr-food-court) for menu/cart/order writes.",
+    "UI stack: Tailwind + Shadcn UI components, next-themes for light/dark mode, Sonner for toast notifications.",
+    "Navigation is implemented as local React state in App.tsx (no router/URLs for page state)."
   ],
   "known_issues": [
-    "frontend/src/pages/RestaurantPage.tsx is empty/placeholder, suggesting an incomplete or dead page.",
-    "Backend order IDs are generated as \"order-\" + totalPrice, which can collide for multiple orders with the same total.",
-    "Backend addToCart appends items without merging by menuItemUuid; repeated adds can create duplicates rather than incrementing quantity.",
-    "backend/main.mo:updateCartItems sets price = 0 for new/updated items (explicit \"to be implemented\"), which can lead to incorrect totals if used.",
-    "backend/main.mo:markOrderAsDelivered updates the order status but does not update/remove the corresponding liveOrders entry (it creates an unused updatedLiveOrder).",
-    "Frontend creates an anonymous actor when unauthenticated, but several React Query hooks (e.g., cart/orders/profile/admin checks) are enabled whenever an actor exists; this can cause \"Unauthorized\" traps/errors before login.",
-    "Blob storage integration relies on env var \"CAFFFEINE_STORAGE_CASHIER_PRINCIPAL\" (note spelling with triple 'F'); misconfiguration will trap at runtime.",
-    "HomePage menuItemImageMap contains a likely typo key ('veg_manuhair') that does not match the backend seed uuid ('veg-manuhair'), so that item may miss its intended mapped image.",
-    "There are two global CSS token files (frontend/index.css and frontend/src/index.css) with different variables; depending on bundler wiring this can cause inconsistent theming/styling.",
-    "Backend state is held in non-stable in-memory maps/lists (no stable vars shown), so menu/orders/carts/profiles may reset on canister upgrade.",
-    "If implemented, a shared numeric password (e.g., 8008448244) for admin access is insecure compared to Internet Identity + canister RBAC; avoid storing/validating it in plaintext on the client."
+    "frontend/src/pages/RestaurantPage.tsx is empty, indicating an unused or incomplete page.",
+    "Several frontend queries run against an anonymous actor when logged out (e.g., getCallerUserProfile/getCartItems) and can trap with backend \"Unauthorized\"; hooks are enabled based on actor presence, but the actor is always created (anonymous when unauthenticated).",
+    "Backend addToCart appends line-items without merging by menuItemUuid; repeated adds can create duplicate cart lines instead of incrementing quantity.",
+    "Backend updateCartItems sets price = 0 for newly added/updated items (explicit \"to be implemented\"), which can break totals if that endpoint is used.",
+    "Backend markOrderAsDelivered updates the orders map but does not actually update the liveOrders list (creates an unused updatedLiveOrder).",
+    "Potential canister upgrade persistence issue: nextOrderId is declared as a normal var in main.mo while a migration scaffold exists; without a stable binding, order IDs may reset after upgrade depending on the migration framework behavior.",
+    "Blob storage env var name is \"CAFFFEINE_STORAGE_CASHIER_PRINCIPAL\" (triple 'F'); this is easy to misconfigure and will trap at runtime if missing.",
+    "_caffeineStorageUpdateGatewayPrincipals has no authorization check; any caller can refresh the authorized gateway principal list (may be intentional but is notable).",
+    "HomePage menuItemImageMap includes a likely typo key ('veg_manuhair') that does not match backend uuid ('veg-manuhair'), so the intended image mapping may not apply.",
+    "Two different global CSS files exist (frontend/index.css and frontend/src/index.css) with different design tokens; depending on bundling/imports, themes can be inconsistent."
   ],
   "isFixRequest": false,
-  "imageRequirements": "## Required Images\n- Close-up plated Chicken Manchuria Indo-Chinese dish photo, glossy sauce, garnished with spring onions, warm restaurant lighting (chicken-manchuria.dim_300x300.jpg)",
-  "generatedImages": [
-    {
-      "filename": "chicken-manchuria.dim_300x300.jpg",
-      "description": "Close-up plated Chicken Manchuria Indo-Chinese dish photo, glossy sauce, garnished with spring onions, warm restaurant lighting",
-      "targetWidth": 300,
-      "targetHeight": 300
-    }
-  ],
   "gameProjectType": "none",
   "projectName": "SNR Food Court Food Delivery Platform",
   "clarification_mode": "instant",
