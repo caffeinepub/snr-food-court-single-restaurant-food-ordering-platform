@@ -1,0 +1,23 @@
+{
+  "kind": "feature_evidence_report",
+  "features": [
+    {
+      "featureId": "feature-add-a-food-photo-asset-for-chicken-manchuria-at-frontend-public-assets-generated-chicken-manchuria-dim-300x300-jpg-and-ensure-the-home-page-menu-card-for-uuid-chicken-manchuria-displays-that-image-via-the-existing-menuitemimagemap",
+      "featureTitle": "Add a food photo asset for Chicken Manchuria at frontend/public/assets/generated/chicken-manchuria.dim_300x300.jpg and ensure the Home page menu card for uuid \"chicken-manchuria\" displays that image via the existing menuItemImageMap.",
+      "files": [],
+      "components": [
+        "authorization@4.0.0",
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-4"
+      ],
+      "confidence": "high"
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "kind": "coverage_report",
+  "version": "1.0",
+  "generatedAt": "2026-02-04T00:17:58.360Z",
+  "sources": {
+    "buildRequest": true,
+    "implementationPlan": true
+  },
+  "requirements": {
+    "total": 2,
+    "implemented": 1,
+    "items": [
+      {
+        "id": "REQ-3",
+        "summary": "Update the existing backend menu item with uuid \"chicken-manchuria\" so that it appears in the menu as \"Chicken Manchuria\" priced at ₹159 (price = 159). Ensure the item remains available and continues to belong to the single restaurant \"snr-food-court\".",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-4",
+        "summary": "Add a food photo asset for Chicken Manchuria at frontend/public/assets/generated/chicken-manchuria.dim_300x300.jpg and ensure the Home page menu card for uuid \"chicken-manchuria\" displays that image via the existing menuItemImageMap.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/public/assets/generated/chicken-manchuria.dim_300x300.jpg",
+          "frontend/src/pages/HomePage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/public/assets/generated/chicken-manchuria.dim_300x300.jpg"
+        ]
+      }
+    ]
+  },
+  "changedFiles": [
+    "backend/main.mo",
+    "build-request.json",
+    "feature_evidence.json",
+    "frontend-implementation-plan.json",
+    "frontend/public/assets/generated/chicken-manchuria.dim_300x300.jpg",
+    "project_state.json",
+    "scratch/component-selection.json",
+    "spec.md",
+    "spec_vs_diff_report.json"
+  ]
+}
