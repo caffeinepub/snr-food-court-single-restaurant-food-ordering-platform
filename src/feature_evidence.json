@@ -2,10 +2,13 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-remove-do-not-render-the-ui-element-located-at-xpath-html-1-body-1-div-1-div-1-main-1-div-1-div-1-from-the-page-apply-the-change-only-to-this-selected-element-and-its-subtree-and-do-not-modify-other-parts-of-the-ui",
-      "featureTitle": "Remove (do not render) the UI element located at XPath `/html[1]/body[1]/div[1]/div[1]/main[1]/div[1]/div[1]` from the page. Apply the change only to this selected element (and its subtree) and do not modify other parts of the UI.",
+      "featureId": "feature-on-the-frontend-automatically-start-live-location-sharing-immediately-after-a-successful-checkout-order-placement-requesting-browser-geolocation-permission-and-sending-updates-to-the-backend-once-per-second-while-the-order-remains-active",
+      "featureTitle": "On the frontend, automatically start live location sharing immediately after a successful checkout (order placement), requesting browser geolocation permission and sending updates to the backend once per second while the order remains active.",
       "files": [
-        "frontend/src/pages/CartPage.tsx"
+        "frontend/src/hooks/useLiveLocationSharing.ts",
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/pages/CartPage.tsx",
+        "frontend/src/pages/OrdersPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -22,10 +25,11 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-remove-do-not-render-the-ui-element-located-at-xpath-html-1-body-1-div-1-div-1-main-1-div-1-div-1-div-2-from-the-page-apply-the-change-only-to-this-selected-element-and-its-subtree-and-do-not-modify-other-parts-of-the-ui",
-      "featureTitle": "Remove (do not render) the UI element located at XPath `/html[1]/body[1]/div[1]/div[1]/main[1]/div[1]/div[1]/div[2]` from the page. Apply the change only to this selected element (and its subtree) and do not modify other parts of the UI.",
+      "featureId": "feature-update-the-admin-dashboard-s-live-orders-ui-to-display-each-active-order-s-current-live-location-lat-lng-and-how-recently-it-was-updated-refreshing-the-live-orders-feed-every-1-second-to-match-the-location-update-frequency",
+      "featureTitle": "Update the Admin Dashboard’s Live Orders UI to display each active order’s current live location (lat/lng) and how recently it was updated, refreshing the live orders feed every 1 second to match the location update frequency.",
       "files": [
-        "frontend/src/pages/CartPage.tsx"
+        "frontend/src/components/LiveOrdersView.tsx",
+        "frontend/src/hooks/useQueries.ts"
       ],
       "components": [
         "authorization@4.0.0",
@@ -38,6 +42,27 @@
       ],
       "testIds": [
         "REQ-4"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-extend-typed-react-query-hooks-to-support-sending-customer-live-location-updates-and-consuming-live-location-data-in-the-admin-live-orders-feed-without-modifying-any-immutable-frontend-paths",
+      "featureTitle": "Add/extend typed React Query hooks to support sending customer live location updates and consuming live location data in the admin live orders feed, without modifying any immutable frontend paths.",
+      "files": [
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/pages/OrdersPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-5"
       ],
       "confidence": "high"
     }

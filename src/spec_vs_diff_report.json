@@ -1,32 +1,78 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-04T13:39:22.355Z",
-  "summary": "The diff does not show any changes targeting the specified main-page DOM elements/XPaths. Only `CartPage.tsx` and `project_state.json` were modified, and neither provides evidence of removing the requested main-page container elements.",
+  "generatedAt": "2026-02-05T14:24:30.309Z",
+  "summary": "The diff clearly adds a frontend live-location sharing hook and wires it into the post-checkout/order flow, plus UI work in the Admin Live Orders view. However, the backend changes required to (a) extend the live order model returned to admins and (b) add an authorized location-update endpoint are not evidenced in the provided backend diff excerpt. The diff also introduces several unrelated frontend features (menu item images/uploads, styling/theme utilities) that were not requested.",
   "missing_requirements": [
     {
-      "id": "REQ-3",
-      "requirement": "Remove (do not render) the UI element located at XPath `/html[1]/body[1]/div[1]/div[1]/main[1]/div[1]/div[1]` from the page (only this element/subtree; no unrelated UI/behavior changes).",
-      "reason": "No diff evidence touches the main page structure or the element corresponding to this XPath; changes shown are in `CartPage.tsx` and `project_state.json` only.",
+      "id": "REQ-1",
+      "requirement": "Extend the backend live order model to include the customer’s latest live location (latitude/longitude) and a last-updated timestamp, and return this data in the existing admin live orders feed.",
+      "reason": "Although a migration module defines new fields (currentLatitude/currentLongitude/lastLocationUpdate), the provided backend/main.mo excerpt does not show the live order type being extended nor the admin live orders feed including these fields.",
       "evidence": [
-        "frontend/src/pages/CartPage.tsx",
-        "project_state.json"
+        "backend/migration.mo",
+        "backend/main.mo (truncated)"
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "requirement": "Add a backend endpoint for customers to push their current location for a specific order, enforcing authorization so only the user who placed the order can update that order’s live location; reject updates for orders that are delivered or cancelled.",
+      "reason": "The diff summary does not show any new backend actor method/endpoint for updating order location, nor any authorization/status checks in backend/main.mo (excerpt is truncated before relevant sections).",
+      "evidence": [
+        "backend/main.mo (truncated)"
       ]
     },
     {
       "id": "REQ-4",
-      "requirement": "Remove (do not render) the UI element located at XPath `/html[1]/body[1]/div[1]/div[1]/main[1]/div[1]/div[1]/div[2]` from the page (only this element/subtree; no unrelated UI/behavior changes).",
-      "reason": "No diff evidence removes or conditionally omits the element at the specified XPath; the provided changes are unrelated to the main page DOM.",
+      "requirement": "Refresh the admin live orders feed every 1 second and show an English fallback for orders without location data.",
+      "reason": "LiveOrdersView.tsx shows added location-related UI helpers (e.g., timestamp formatting), but the provided excerpt does not show the query polling interval being changed to 1s nor the explicit fallback text for missing location.",
       "evidence": [
-        "frontend/src/pages/CartPage.tsx",
-        "project_state.json"
+        "frontend/src/components/LiveOrdersView.tsx (truncated)",
+        "frontend/src/hooks/useQueries.ts (truncated)"
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "requirement": "Add/extend typed React Query hooks to support sending customer live location updates and consuming live location data in the admin live orders feed.",
+      "reason": "The new live location sharing hook imports useUpdateCustomerLocationOnOrder, and useQueries.ts imports UpdateOrderLocationInput, but the truncated excerpt does not include the actual mutation/query definitions that implement these hooks and type-safe consumption.",
+      "evidence": [
+        "frontend/src/hooks/useLiveLocationSharing.ts",
+        "frontend/src/hooks/useQueries.ts (truncated)"
       ]
     }
   ],
-  "hallucinated_features": [],
-  "confidence": 0.74,
+  "hallucinated_features": [
+    {
+      "description": "Menu item image upload / blob-storage related UI enhancements in the Admin dashboard and menu display (uploaded food photos, upload progress, fallback image logic).",
+      "reason": "Not requested by any REQ; BuildRequest focuses only on live location sharing and admin live orders display/polling.",
+      "evidence": [
+        "frontend-file-summaries.txt (AdminDashboard.tsx, HomePage.tsx, menuItemImage.ts)"
+      ]
+    },
+    {
+      "description": "Global styling change introducing an OKLCH color system and a warm food-themed palette.",
+      "reason": "Not requested; unrelated to live location sharing.",
+      "evidence": [
+        "frontend-file-summaries.txt (frontend/src/index.css)"
+      ]
+    },
+    {
+      "description": "Utility module for required menu items (e.g., merging missing required items into fetched menu lists).",
+      "reason": "Not requested; unrelated to live location sharing.",
+      "evidence": [
+        "frontend-file-summaries.txt (frontend/src/utils/requiredMenuItems.ts)"
+      ]
+    }
+  ],
+  "confidence": 0.62,
   "changed_files": [
+    "backend/main.mo",
+    "backend/migration.mo",
+    "frontend-file-summaries.txt",
+    "frontend/src/components/LiveOrdersView.tsx",
+    "frontend/src/hooks/useLiveLocationSharing.ts",
+    "frontend/src/hooks/useQueries.ts",
     "frontend/src/pages/CartPage.tsx",
+    "frontend/src/pages/OrdersPage.tsx",
     "project_state.json"
   ]
 }

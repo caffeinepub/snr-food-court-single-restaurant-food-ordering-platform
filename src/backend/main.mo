@@ -12,7 +12,9 @@ import Storage "blob-storage/Storage";
 import MixinStorage "blob-storage/Mixin";
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
+import Migration "migration";
 
+(with migration = Migration.run)
 actor {
   type CuisineType = {
     #american;
@@ -178,6 +180,15 @@ actor {
     totalPrice : Nat;
     orderTimestamp : Int;
     status : OrderStatus;
+    currentLatitude : ?Float;
+    currentLongitude : ?Float;
+    lastLocationUpdate : ?Int;
+  };
+
+  type UpdateOrderLocationInput = {
+    orderId : Text;
+    latitude : Float;
+    longitude : Float;
   };
 
   let SINGLE_RESTAURANT_UUID = "snr-food-court";
@@ -273,7 +284,7 @@ actor {
     ),
   ];
 
-  let menuItems = Map.fromIter<Text, MenuItem>(menuItemsList.values());
+  let menuItems = Map.empty<Text, MenuItem>();
   let orders = Map.empty<Text, Order>();
   let carts = Map.empty<Principal, Cart>();
   let searchHistory = Map.empty<Principal, List.List<Text>>();
@@ -431,6 +442,9 @@ actor {
       totalPrice;
       orderTimestamp = currentTime; // Set live order timestamp
       status = #pending;
+      currentLatitude = null;
+      currentLongitude = null;
+      lastLocationUpdate = null;
     };
     liveOrders.add(newLiveOrder);
 
@@ -713,5 +727,80 @@ actor {
 
   public query ({ caller }) func getStandardizedRestaurantContactInfo() : async Text {
     SINGLE_RESTAURANT_INFO.phone;
+  };
+
+  // New endpoint to update order location for live tracking
+  public shared ({ caller }) func updateCustomerLocationOnOrder(input : UpdateOrderLocationInput) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can update live order location");
+    };
+
+    let order = switch (orders.get(input.orderId)) {
+      case (null) { Runtime.trap("Order not found") };
+      case (?order) { order };
+    };
+
+    if (order.userId != caller) {
+      Runtime.trap("You can only update location for your own orders");
+    };
+
+    if (order.status == #delivered or order.status == #cancelled) {
+      Runtime.trap("Cannot update location for completed orders");
+    };
+
+    let updatedActiveOrders = liveOrders.map<LiveOrder, LiveOrder>(
+      func(liveOrder) {
+        if (liveOrder.orderId == input.orderId) {
+          {
+            liveOrder with
+            currentLatitude = ?input.latitude;
+            currentLongitude = ?input.longitude;
+            lastLocationUpdate = ?Time.now();
+          };
+        } else {
+          liveOrder;
+        };
+      }
+    );
+
+    liveOrders.clear();
+    liveOrders.addAll(updatedActiveOrders.values());
+  };
+
+  // New query to get live order location for specific order
+  public query ({ caller }) func getLiveOrderLocation(orderId : Text) : async ?{
+    latitude : Float;
+    longitude : Float;
+    lastLocationUpdate : Int;
+  } {
+    let order = switch (orders.get(orderId)) {
+      case (null) { Runtime.trap("Order not found") };
+      case (?order) { order };
+    };
+
+    if (order.userId != caller and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Can only view location for your own orders");
+    };
+
+    let liveOrder = liveOrders.values().find(func(o) { o.orderId == orderId });
+    switch (liveOrder) {
+      case (null) { null };
+      case (?liveOrder) {
+        if (liveOrder.currentLatitude.isSome() and liveOrder.currentLongitude.isSome()) {
+          switch (liveOrder.currentLatitude, liveOrder.currentLongitude, liveOrder.lastLocationUpdate) {
+            case (?latitude, ?longitude, ?lastLocationUpdate) {
+              ?{
+                latitude;
+                longitude;
+                lastLocationUpdate;
+              };
+            };
+            case (_) { null };
+          };
+        } else {
+          null;
+        };
+      };
+    };
   };
 };

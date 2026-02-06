@@ -59,8 +59,11 @@ export const LiveOrder = IDL.Record({
   'deliveryAddress' : IDL.Text,
   'customerPhone' : IDL.Text,
   'orderId' : IDL.Text,
+  'currentLongitude' : IDL.Opt(IDL.Float64),
+  'lastLocationUpdate' : IDL.Opt(IDL.Int),
   'items' : IDL.Vec(OrderMenuItem),
   'totalPrice' : IDL.Nat,
+  'currentLatitude' : IDL.Opt(IDL.Float64),
   'orderTimestamp' : IDL.Int,
 });
 export const Order = IDL.Record({
@@ -111,6 +114,11 @@ export const UpdateCartItemInput = IDL.Record({
   'menuItemUuid' : IDL.Text,
   'quantity' : IDL.Opt(IDL.Nat),
 });
+export const UpdateOrderLocationInput = IDL.Record({
+  'latitude' : IDL.Float64,
+  'orderId' : IDL.Text,
+  'longitude' : IDL.Float64,
+});
 
 export const idlService = IDL.Service({
   '_caffeineStorageBlobIsLive' : IDL.Func(
@@ -158,6 +166,19 @@ export const idlService = IDL.Service({
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(FoodCourtProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
   'getCartItems' : IDL.Func([], [Cart], ['query']),
+  'getLiveOrderLocation' : IDL.Func(
+      [IDL.Text],
+      [
+        IDL.Opt(
+          IDL.Record({
+            'latitude' : IDL.Float64,
+            'longitude' : IDL.Float64,
+            'lastLocationUpdate' : IDL.Int,
+          })
+        ),
+      ],
+      ['query'],
+    ),
   'getMenuByCategory' : IDL.Func([IDL.Text], [IDL.Vec(MenuItem)], ['query']),
   'getMenuItem' : IDL.Func([IDL.Text], [MenuItem], ['query']),
   'getOrder' : IDL.Func([IDL.Text], [Order], ['query']),
@@ -182,6 +203,11 @@ export const idlService = IDL.Service({
   'updateCartItems' : IDL.Func(
       [IDL.Vec(UpdateCartItemInput), IDL.Bool],
       [Cart],
+      [],
+    ),
+  'updateCustomerLocationOnOrder' : IDL.Func(
+      [UpdateOrderLocationInput],
+      [],
       [],
     ),
   'updateMenuItem' : IDL.Func(
@@ -254,8 +280,11 @@ export const idlFactory = ({ IDL }) => {
     'deliveryAddress' : IDL.Text,
     'customerPhone' : IDL.Text,
     'orderId' : IDL.Text,
+    'currentLongitude' : IDL.Opt(IDL.Float64),
+    'lastLocationUpdate' : IDL.Opt(IDL.Int),
     'items' : IDL.Vec(OrderMenuItem),
     'totalPrice' : IDL.Nat,
+    'currentLatitude' : IDL.Opt(IDL.Float64),
     'orderTimestamp' : IDL.Int,
   });
   const Order = IDL.Record({
@@ -305,6 +334,11 @@ export const idlFactory = ({ IDL }) => {
   const UpdateCartItemInput = IDL.Record({
     'menuItemUuid' : IDL.Text,
     'quantity' : IDL.Opt(IDL.Nat),
+  });
+  const UpdateOrderLocationInput = IDL.Record({
+    'latitude' : IDL.Float64,
+    'orderId' : IDL.Text,
+    'longitude' : IDL.Float64,
   });
   
   return IDL.Service({
@@ -357,6 +391,19 @@ export const idlFactory = ({ IDL }) => {
       ),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getCartItems' : IDL.Func([], [Cart], ['query']),
+    'getLiveOrderLocation' : IDL.Func(
+        [IDL.Text],
+        [
+          IDL.Opt(
+            IDL.Record({
+              'latitude' : IDL.Float64,
+              'longitude' : IDL.Float64,
+              'lastLocationUpdate' : IDL.Int,
+            })
+          ),
+        ],
+        ['query'],
+      ),
     'getMenuByCategory' : IDL.Func([IDL.Text], [IDL.Vec(MenuItem)], ['query']),
     'getMenuItem' : IDL.Func([IDL.Text], [MenuItem], ['query']),
     'getOrder' : IDL.Func([IDL.Text], [Order], ['query']),
@@ -385,6 +432,11 @@ export const idlFactory = ({ IDL }) => {
     'updateCartItems' : IDL.Func(
         [IDL.Vec(UpdateCartItemInput), IDL.Bool],
         [Cart],
+        [],
+      ),
+    'updateCustomerLocationOnOrder' : IDL.Func(
+        [UpdateOrderLocationInput],
+        [],
         [],
       ),
     'updateMenuItem' : IDL.Func(

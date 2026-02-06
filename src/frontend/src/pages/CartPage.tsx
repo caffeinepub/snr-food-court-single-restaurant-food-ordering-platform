@@ -43,7 +43,9 @@ export default function CartPage({ onNavigate }: CartPageProps) {
       return;
     }
     placeOrder.mutate({ address: deliveryAddress, userNotes, customerName, customerPhone }, {
-      onSuccess: () => {
+      onSuccess: (orderId) => {
+        // Store the orderId in sessionStorage for live location tracking
+        sessionStorage.setItem('activeOrderId', orderId);
         onNavigate('orders');
       },
     });

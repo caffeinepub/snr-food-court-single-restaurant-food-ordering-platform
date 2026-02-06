@@ -1,57 +1,121 @@
 {
   "kind": "build_request",
-  "title": "Remove selected main-page container elements",
+  "title": "Share customer live location with restaurant after checkout (1s updates)",
   "priority": "normal",
   "requirements": [
     {
+      "id": "REQ-1",
+      "text": "Extend the backend live order model to include the customer’s latest live location (latitude/longitude) and a last-updated timestamp, and return this data in the existing admin live orders feed used by the Admin Dashboard (Live Orders area).",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "for every second  and the sharing start automatically  after order complete  and the  location must be in admin  dashboard"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Backend compiles and existing endpoints continue to work for orders without any location yet (location shown as missing/null).",
+        "The admin endpoint used by the frontend live orders feed includes location fields for each live order when available."
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Add a backend endpoint for customers to push their current location for a specific order, enforcing authorization so only the user who placed the order can update that order’s live location; reject updates for orders that are delivered or cancelled.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "when they are  order send to restaurant  their locatino live",
+          "for every second  and the sharing start automatically  after order complete"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Calling the location-update endpoint as a different principal than the order owner traps/returns an error (authorization enforced).",
+        "Calling the location-update endpoint for a delivered/cancelled order traps/returns an error (no further updates allowed).",
+        "A successful update is reflected in the admin live orders feed on the next poll."
+      ]
+    },
+    {
       "id": "REQ-3",
-      "text": "Remove (do not render) the UI element located at XPath `/html[1]/body[1]/div[1]/div[1]/main[1]/div[1]/div[1]` from the page. Apply the change only to this selected element (and its subtree) and do not modify other parts of the UI.",
+      "text": "On the frontend, automatically start live location sharing immediately after a successful checkout (order placement), requesting browser geolocation permission and sending updates to the backend once per second while the order remains active.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-1"
         ],
         "quotes": [
-          "remove",
-          "/html[1]/body[1]/div[1]/div[1]/main[1]/div[1]/div[1]"
+          "the sharing start automatically  after order complete",
+          "for every second"
         ]
       },
       "acceptanceCriteria": [
-        "The element at XPath `/html[1]/body[1]/div[1]/div[1]/main[1]/div[1]/div[1]` is no longer present in the DOM at runtime.",
-        "No blank/extra spacing remains where the removed element used to be (layout reflows cleanly).",
-        "No console errors are introduced by the removal."
+        "After placing an order successfully, the app requests geolocation permission and begins sending location updates approximately once per second.",
+        "If the user denies geolocation permission or the browser does not support geolocation, the app does not crash and shows a clear English message explaining that live location sharing is unavailable.",
+        "Location updates stop automatically when the order becomes delivered or cancelled (or when the app determines the order is no longer active)."
       ]
     },
     {
       "id": "REQ-4",
-      "text": "Remove (do not render) the UI element located at XPath `/html[1]/body[1]/div[1]/div[1]/main[1]/div[1]/div[1]/div[2]` from the page. Apply the change only to this selected element (and its subtree) and do not modify other parts of the UI.",
+      "text": "Update the Admin Dashboard’s Live Orders UI to display each active order’s current live location (lat/lng) and how recently it was updated, refreshing the live orders feed every 1 second to match the location update frequency.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-1"
         ],
         "quotes": [
-          "remove",
-          "/html[1]/body[1]/div[1]/div[1]/main[1]/div[1]/div[1]/div[2]"
+          "location must be in admin  dashboard",
+          "for every second"
         ]
       },
       "acceptanceCriteria": [
-        "The element at XPath `/html[1]/body[1]/div[1]/div[1]/main[1]/div[1]/div[1]/div[2]` is no longer present in the DOM at runtime.",
-        "No blank/extra spacing remains where the removed element used to be (layout reflows cleanly).",
-        "No console errors are introduced by the removal."
+        "The Live Orders view shows live location details for orders that have them (e.g., latitude/longitude and a “last updated” indicator).",
+        "The admin live orders query polls every 1 second (instead of 5 seconds) and the UI updates accordingly.",
+        "Orders without location data display an English fallback (e.g., “Location not available yet”)."
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "text": "Add/extend typed React Query hooks to support sending customer live location updates and consuming live location data in the admin live orders feed, without modifying any immutable frontend paths.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ]
+      },
+      "acceptanceCriteria": [
+        "A dedicated React Query mutation (or equivalent) exists for pushing live location updates to the backend.",
+        "Existing hooks continue to work, and the admin Live Orders view consumes the updated live orders type safely.",
+        "No changes are made to any paths listed under frontend.immutablePaths in SYSTEM_CONTEXT."
       ]
     }
   ],
   "constraints": [
-    "Apply changes ONLY to the two selected elements identified by the provided XPaths; do not alter unrelated UI or behavior.",
-    "Use English for any user-facing text."
+    "Backend must remain a single Motoko actor with all logic in backend/main.mo (no additional backend services).",
+    "Do not edit any files under frontend/src/components/ui or any paths listed in SYSTEM_CONTEXT.frontend.immutablePaths.",
+    "Use English for all user-facing text.",
+    "No WebSockets or real-time push: implement “live” behavior via polling and client-side periodic updates."
   ],
   "nonGoals": [
-    "Do not add new features or new pages.",
-    "Do not modify backend canister logic."
+    "Implementing map tiles, GPS navigation, or external maps/geolocation services integration.",
+    "Sharing location with non-admin users or exposing location publicly.",
+    "Storing long-term location history/trails for an order (only the latest live location is required)."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
+  },
+  "userProfileUpdate": {
+    "goalsToAdd": [],
+    "goalsToRemove": [],
+    "preferencesToAdd": [],
+    "preferencesToRemove": [],
+    "miscToAdd": [],
+    "miscToRemove": [],
+    "fieldsToSet": {},
+    "fieldsToDelete": []
   }
 }

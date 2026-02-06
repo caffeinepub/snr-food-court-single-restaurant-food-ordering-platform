@@ -1,37 +1,78 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Remove selected main-page container elements by XPath",
+  "title": "Live customer location sharing after checkout + admin live orders location display (1s updates)",
   "requirements": [
     {
       "id": "REQ-3",
-      "summary": "Stop rendering the selected container element at XPath `/html[1]/body[1]/div[1]/div[1]/main[1]/div[1]/div[1]` (and its subtree) without affecting other UI.",
+      "summary": "Automatically start customer live location sharing after successful checkout and send updates ~once per second while the order is active, with graceful handling when geolocation is unavailable.",
       "acceptanceCriteria": [
-        "The element at XPath `/html[1]/body[1]/div[1]/div[1]/main[1]/div[1]/div[1]` is no longer present in the DOM at runtime.",
-        "No blank/extra spacing remains where the removed element used to be (layout reflows cleanly).",
-        "No console errors are introduced by the removal."
+        "After placing an order successfully, the app requests geolocation permission and begins sending location updates approximately once per second.",
+        "If the user denies geolocation permission or the browser does not support geolocation, the app does not crash and shows a clear English message explaining that live location sharing is unavailable.",
+        "Location updates stop automatically when the order becomes delivered or cancelled (or when the app determines the order is no longer active)."
       ],
       "file_operations": [
         {
           "path": "frontend/src/pages/CartPage.tsx",
           "operation": "modify",
-          "description": "Identify the JSX block that renders the DOM node matching XPath `/html[1]/body[1]/div[1]/div[1]/main[1]/div[1]/div[1]` at runtime (likely the first inner container within the page root) and remove it from render output (return a fragment / render remaining siblings directly) so the node and its subtree are not rendered and no extra spacing remains."
+          "description": "Capture the newly placed orderId returned from the existing place-order mutation, persist it (e.g., sessionStorage) as the current order to share live location for, and continue navigating to the Orders page after checkout so sharing can start immediately there."
+        },
+        {
+          "path": "frontend/src/pages/OrdersPage.tsx",
+          "operation": "modify",
+          "description": "Start live location sharing automatically when the page detects a recently placed active orderId (from sessionStorage/state). Display a clear English Alert message when geolocation is unsupported/denied, and stop sharing + clear the stored orderId when the order status becomes delivered/cancelled (based on refreshed orders data)."
+        },
+        {
+          "path": "frontend/src/hooks/useLiveLocationSharing.ts",
+          "operation": "create",
+          "description": "Create a reusable React hook that (1) checks navigator.geolocation support, (2) requests permission by attempting to read position, (3) sends latitude/longitude to the backend using the dedicated React Query mutation once per second, (4) exposes state for UI messaging, and (5) cleans up interval/timers when disabled or unmounted."
+        },
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Adjust the existing user orders query behavior to refresh often enough for the app to determine when an order is no longer active (so location updates can stop automatically), without changing any immutable frontend paths."
         }
       ]
     },
     {
       "id": "REQ-4",
-      "summary": "Stop rendering the nested selected element at XPath `/html[1]/body[1]/div[1]/div[1]/main[1]/div[1]/div[1]/div[2]` (and its subtree) without affecting other UI.",
+      "summary": "Update Admin Dashboard Live Orders UI to show current customer live location + recency and poll the live orders feed every 1 second.",
       "acceptanceCriteria": [
-        "The element at XPath `/html[1]/body[1]/div[1]/div[1]/main[1]/div[1]/div[1]/div[2]` is no longer present in the DOM at runtime.",
-        "No blank/extra spacing remains where the removed element used to be (layout reflows cleanly).",
-        "No console errors are introduced by the removal."
+        "The Live Orders view shows live location details for orders that have them (e.g., latitude/longitude and a “last updated” indicator).",
+        "The admin live orders query polls every 1 second (instead of 5 seconds) and the UI updates accordingly.",
+        "Orders without location data display an English fallback (e.g., “Location not available yet”)."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/CartPage.tsx",
+          "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Within the same parent container targeted by REQ-3, locate the specific child node that corresponds to `/div[2]` in XPath `/html[1]/body[1]/div[1]/div[1]/main[1]/div[1]/div[1]/div[2]` (the second direct div child of that container, if present at runtime) and remove it from rendering while keeping the rest of the page unchanged and ensuring layout reflows without leaving gaps."
+          "description": "Change the admin live orders query polling interval to 1 second (refetchInterval) to match the live location update frequency, while keeping existing query keys and behavior intact."
+        },
+        {
+          "path": "frontend/src/components/LiveOrdersView.tsx",
+          "operation": "modify",
+          "description": "Render each live order’s latitude/longitude when available and add a “last updated” recency indicator derived from lastLocationUpdate; show an English fallback (e.g., “Location not available yet”) when location fields are missing, and update the on-screen polling description to reflect 1-second refresh."
+        }
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "summary": "Add/extend typed React Query hooks to push customer location updates and safely consume live location fields in the admin live orders feed without modifying immutable paths.",
+      "acceptanceCriteria": [
+        "A dedicated React Query mutation (or equivalent) exists for pushing live location updates to the backend.",
+        "Existing hooks continue to work, and the admin Live Orders view consumes the updated live orders type safely.",
+        "No changes are made to any paths listed under frontend.immutablePaths in SYSTEM_CONTEXT."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Add a dedicated typed React Query mutation hook (e.g., useUpdateCustomerLocationOnOrder) that calls the backend capability for updating an order’s current latitude/longitude. Ensure errors are surfaced in English and existing hooks remain compatible."
+        },
+        {
+          "path": "frontend/src/pages/OrdersPage.tsx",
+          "operation": "modify",
+          "description": "Wire the new location-update mutation into the live location sharing flow (via the new useLiveLocationSharing hook) so updates are sent with the correct orderId and types; handle authorization/trap-style errors gracefully with clear English messaging."
         }
       ]
     }

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
-import type { Restaurant, MenuItem, Order, Cart, FoodCourtProfile, CartItem, OrderStatus, LiveOrder } from '../backend';
+import type { Restaurant, MenuItem, Order, Cart, FoodCourtProfile, CartItem, OrderStatus, LiveOrder, UpdateOrderLocationInput } from '../backend';
 import { toast } from 'sonner';
 
 // User Profile
@@ -198,8 +198,8 @@ export function usePlaceOrder() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: async ({ address, userNotes, customerName, customerPhone }: { address: string; userNotes: string; customerName: string; customerPhone: string }) => {
+  return useMutation<string, Error, { address: string; userNotes: string; customerName: string; customerPhone: string }>({
+    mutationFn: async ({ address, userNotes, customerName, customerPhone }) => {
       if (!actor) throw new Error('Actor not available');
       return actor.placeOrder(address, userNotes, customerName, customerPhone);
     },
@@ -225,6 +225,7 @@ export function useGetUserOrders() {
       return actor.getUserOrders();
     },
     enabled: !!actor && !isFetching,
+    refetchInterval: 3000,
   });
 }
 
@@ -251,7 +252,7 @@ export function useGetAllActiveOrders(isAdmin: boolean) {
       return actor.getAllActiveOrders();
     },
     enabled: !!actor && !isFetching && isAdmin,
-    refetchInterval: 5000,
+    refetchInterval: 1000,
     refetchIntervalInBackground: true,
   });
 }
@@ -273,6 +274,22 @@ export function useUpdateOrderStatus() {
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Failed to update order status');
+    },
+  });
+}
+
+// Live Location Tracking
+export function useUpdateCustomerLocationOnOrder() {
+  const { actor } = useActor();
+
+  return useMutation({
+    mutationFn: async (input: UpdateOrderLocationInput) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.updateCustomerLocationOnOrder(input);
+    },
+    onError: (error: Error) => {
+      // Silently log errors to avoid spamming the user with toasts every second
+      console.error('Failed to update location:', error.message);
     },
   });
 }

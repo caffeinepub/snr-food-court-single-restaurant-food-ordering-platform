@@ -91,12 +91,17 @@ export default function HomePage() {
   };
 
   const getMenuItemImage = (item: MenuItem, index: number): string => {
-    // Check if there's a specific image for this menu item
+    // First priority: uploaded image from backend
+    if (item.image) {
+      return item.image.getDirectURL();
+    }
+
+    // Second priority: specific mapped image
     if (menuItemImageMap[item.uuid]) {
       return menuItemImageMap[item.uuid];
     }
     
-    // Use fallback images in rotation
+    // Fallback: use rotation of fallback images
     const imageIndex = index % fallbackImages.length;
     return fallbackImages[imageIndex];
   };

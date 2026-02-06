@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Bell, Clock, Phone, MapPin, Package, XCircle, AlertCircle } from 'lucide-react';
+import { Bell, Clock, Phone, MapPin, Package, XCircle, AlertCircle, Navigation } from 'lucide-react';
 import { OrderStatus } from '../backend';
 import type { LiveOrder } from '../backend';
 import { toast } from 'sonner';
@@ -100,6 +100,20 @@ export default function LiveOrdersView() {
     });
   };
 
+  const formatLocationUpdate = (timestamp: bigint | undefined) => {
+    if (!timestamp) return 'Never';
+    
+    const milliseconds = Number(timestamp) / 1_000_000;
+    const date = new Date(milliseconds);
+    const now = new Date();
+    const secondsAgo = Math.floor((now.getTime() - date.getTime()) / 1000);
+    
+    if (secondsAgo < 5) return 'Just now';
+    if (secondsAgo < 60) return `${secondsAgo}s ago`;
+    if (secondsAgo < 3600) return `${Math.floor(secondsAgo / 60)}m ago`;
+    return `${Math.floor(secondsAgo / 3600)}h ago`;
+  };
+
   // Show loading while checking admin status
   if (isAdminLoading) {
     return (
@@ -154,7 +168,7 @@ export default function LiveOrdersView() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-semibold">Live Orders</h2>
-          <p className="text-muted-foreground">Active orders update automatically every 5 seconds</p>
+          <p className="text-muted-foreground">Active orders update automatically every second</p>
         </div>
         <Badge variant="outline" className="text-lg px-4 py-2">
           <Package className="h-4 w-4 mr-2" />
@@ -174,6 +188,7 @@ export default function LiveOrdersView() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {liveOrders.map((order: LiveOrder) => {
             const canCancel = order.status !== OrderStatus.delivered && order.status !== OrderStatus.cancelled;
+            const hasLocation = order.currentLatitude !== undefined && order.currentLongitude !== undefined;
             
             return (
               <Card key={order.orderId} className="border-2 hover:border-primary/50 transition-colors">
@@ -205,6 +220,34 @@ export default function LiveOrdersView() {
                       <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
                       <div className="flex-1 text-sm">{order.deliveryAddress}</div>
                     </div>
+                  </div>
+
+                  {/* Live Location Section */}
+                  <div className="border rounded-lg p-3 bg-muted/30">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Navigation className="h-4 w-4 text-primary" />
+                      <span className="font-medium text-sm">Live Location</span>
+                    </div>
+                    {hasLocation ? (
+                      <div className="space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Latitude:</span>
+                          <span className="font-mono">{order.currentLatitude?.toFixed(6)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Longitude:</span>
+                          <span className="font-mono">{order.currentLongitude?.toFixed(6)}</span>
+                        </div>
+                        <div className="flex justify-between pt-1 border-t">
+                          <span className="text-muted-foreground">Last updated:</span>
+                          <span className="text-green-600 dark:text-green-400 font-medium">
+                            {formatLocationUpdate(order.lastLocationUpdate)}
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">Location not available yet</p>
+                    )}
                   </div>
 
                   <div className="border-t pt-3">

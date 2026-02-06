@@ -25,8 +25,11 @@ export interface LiveOrder {
     deliveryAddress: string;
     customerPhone: string;
     orderId: string;
+    currentLongitude?: number;
+    lastLocationUpdate?: bigint;
     items: Array<OrderMenuItem>;
     totalPrice: bigint;
+    currentLatitude?: number;
     orderTimestamp: bigint;
 }
 export interface UpdateCartItemInput {
@@ -103,7 +106,11 @@ export interface MenuItem {
     image?: ExternalBlob;
     price: bigint;
 }
-export type Cart = Array<CartItem>;
+export interface UpdateOrderLocationInput {
+    latitude: number;
+    orderId: string;
+    longitude: number;
+}
 export interface FoodCourtProfile {
     name: string;
     email: string;
@@ -116,6 +123,7 @@ export interface CartItem {
     quantity: bigint;
     price: bigint;
 }
+export type Cart = Array<CartItem>;
 export enum OrderStatus {
     preparing = "preparing",
     cancelled = "cancelled",
@@ -143,6 +151,11 @@ export interface backendInterface {
     getCallerUserProfile(): Promise<FoodCourtProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getCartItems(): Promise<Cart>;
+    getLiveOrderLocation(orderId: string): Promise<{
+        latitude: number;
+        longitude: number;
+        lastLocationUpdate: bigint;
+    } | null>;
     getMenuByCategory(category: string): Promise<Array<MenuItem>>;
     getMenuItem(uuid: string): Promise<MenuItem>;
     getOrder(uuid: string): Promise<Order>;
@@ -157,6 +170,7 @@ export interface backendInterface {
     saveCallerUserProfile(profile: FoodCourtProfile): Promise<void>;
     searchMenuByName(searchTerm: string): Promise<Array<MenuItem>>;
     updateCartItems(items: Array<UpdateCartItemInput>, keepItemsWithQuantityZero: boolean): Promise<Cart>;
+    updateCustomerLocationOnOrder(input: UpdateOrderLocationInput): Promise<void>;
     updateMenuItem(uuid: string, newName: string | null, newDescription: string | null, newPrice: bigint | null, newCategory: string | null, newIsAvailable: boolean | null, newImage: ExternalBlob | null): Promise<void>;
     updateOrderStatus(uuid: string, status: OrderStatus): Promise<void>;
 }

@@ -42,8 +42,11 @@ export interface LiveOrder {
   'deliveryAddress' : string,
   'customerPhone' : string,
   'orderId' : string,
+  'currentLongitude' : [] | [number],
+  'lastLocationUpdate' : [] | [bigint],
   'items' : Array<OrderMenuItem>,
   'totalPrice' : bigint,
+  'currentLatitude' : [] | [number],
   'orderTimestamp' : bigint,
 }
 export interface MenuItem {
@@ -93,6 +96,11 @@ export interface UpdateCartItemInput {
   'menuItemUuid' : string,
   'quantity' : [] | [bigint],
 }
+export interface UpdateOrderLocationInput {
+  'latitude' : number,
+  'orderId' : string,
+  'longitude' : number,
+}
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
@@ -138,6 +146,16 @@ export interface _SERVICE {
   'getCallerUserProfile' : ActorMethod<[], [] | [FoodCourtProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getCartItems' : ActorMethod<[], Cart>,
+  'getLiveOrderLocation' : ActorMethod<
+    [string],
+    [] | [
+      {
+        'latitude' : number,
+        'longitude' : number,
+        'lastLocationUpdate' : bigint,
+      }
+    ]
+  >,
   'getMenuByCategory' : ActorMethod<[string], Array<MenuItem>>,
   'getMenuItem' : ActorMethod<[string], MenuItem>,
   'getOrder' : ActorMethod<[string], Order>,
@@ -152,6 +170,10 @@ export interface _SERVICE {
   'saveCallerUserProfile' : ActorMethod<[FoodCourtProfile], undefined>,
   'searchMenuByName' : ActorMethod<[string], Array<MenuItem>>,
   'updateCartItems' : ActorMethod<[Array<UpdateCartItemInput>, boolean], Cart>,
+  'updateCustomerLocationOnOrder' : ActorMethod<
+    [UpdateOrderLocationInput],
+    undefined
+  >,
   'updateMenuItem' : ActorMethod<
     [
       string,

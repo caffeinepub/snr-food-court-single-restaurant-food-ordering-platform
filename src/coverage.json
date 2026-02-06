@@ -1,44 +1,91 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-04T13:39:22.373Z",
+  "generatedAt": "2026-02-05T14:24:30.327Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 2,
-    "implemented": 2,
+    "total": 5,
+    "implemented": 3,
     "items": [
       {
+        "id": "REQ-1",
+        "summary": "Extend the backend live order model to include the customer’s latest live location (latitude/longitude) and a last-updated timestamp, and return this data in the existing admin live orders feed used by the Admin Dashboard (Live Orders area).",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-2",
+        "summary": "Add a backend endpoint for customers to push their current location for a specific order, enforcing authorization so only the user who placed the order can update that order’s live location; reject updates for orders that are delivered or cancelled.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
+      },
+      {
         "id": "REQ-3",
-        "summary": "Remove (do not render) the UI element located at XPath `/html[1]/body[1]/div[1]/div[1]/main[1]/div[1]/div[1]` from the page. Apply the change only to this selected element (and its subtree) and do not modify other parts of the UI.",
+        "summary": "On the frontend, automatically start live location sharing immediately after a successful checkout (order placement), requesting browser geolocation permission and sending updates to the backend once per second while the order remains active.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/CartPage.tsx"
+          "frontend/src/pages/CartPage.tsx",
+          "frontend/src/pages/OrdersPage.tsx",
+          "frontend/src/hooks/useLiveLocationSharing.ts",
+          "frontend/src/hooks/useQueries.ts"
         ],
         "matchedFiles": [
-          "frontend/src/pages/CartPage.tsx"
+          "frontend/src/pages/CartPage.tsx",
+          "frontend/src/pages/OrdersPage.tsx",
+          "frontend/src/hooks/useLiveLocationSharing.ts",
+          "frontend/src/hooks/useQueries.ts"
         ]
       },
       {
         "id": "REQ-4",
-        "summary": "Remove (do not render) the UI element located at XPath `/html[1]/body[1]/div[1]/div[1]/main[1]/div[1]/div[1]/div[2]` from the page. Apply the change only to this selected element (and its subtree) and do not modify other parts of the UI.",
+        "summary": "Update the Admin Dashboard’s Live Orders UI to display each active order’s current live location (lat/lng) and how recently it was updated, refreshing the live orders feed every 1 second to match the location update frequency.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/CartPage.tsx"
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/components/LiveOrdersView.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/pages/CartPage.tsx"
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/components/LiveOrdersView.tsx"
+        ]
+      },
+      {
+        "id": "REQ-5",
+        "summary": "Add/extend typed React Query hooks to support sending customer live location updates and consuming live location data in the admin live orders feed, without modifying any immutable frontend paths.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/OrdersPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/OrdersPage.tsx"
         ]
       }
     ]
   },
   "changedFiles": [
+    "backend/main.mo",
+    "backend/migration.mo",
     "build-request.json",
+    "caffeine.lock.json",
     "feature_evidence.json",
+    "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
+    "frontend/src/backend.d.ts",
+    "frontend/src/backend.ts",
+    "frontend/src/components/LiveOrdersView.tsx",
+    "frontend/src/declarations/backend.did.d.ts",
+    "frontend/src/declarations/backend.did.js",
+    "frontend/src/hooks/useLiveLocationSharing.ts",
+    "frontend/src/hooks/useQueries.ts",
     "frontend/src/pages/CartPage.tsx",
+    "frontend/src/pages/OrdersPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

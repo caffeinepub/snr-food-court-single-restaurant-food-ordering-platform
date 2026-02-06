@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useGetAllMenuItems, useGetAllOrders, useAddMenuItem, useUpdateOrderStatus, useDeleteMenuItem, useGetSingleRestaurant, useIsCallerAdmin } from '../hooks/useQueries';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,11 +11,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Shield, Plus, UtensilsCrossed, Package, Trash2, Radio, AlertCircle, XCircle } from 'lucide-react';
-import { OrderStatus } from '../backend';
+import { Shield, Plus, UtensilsCrossed, Package, Trash2, Radio, AlertCircle, XCircle, Upload, X, Image as ImageIcon } from 'lucide-react';
+import { OrderStatus, ExternalBlob } from '../backend';
 import type { MenuItem } from '../backend';
 import LiveOrdersView from '../components/LiveOrdersView';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { validateImageFile, fileToBytes, createPreviewUrl, revokePreviewUrl } from '../utils/menuItemImage';
+import { toast } from 'sonner';
 
 const SINGLE_RESTAURANT_UUID = 'snr-food-court';
 
@@ -29,6 +31,9 @@ export default function AdminDashboard() {
   const updateOrderStatus = useUpdateOrderStatus();
 
   const [showMenuItemDialog, setShowMenuItemDialog] = useState(false);
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
 
   const [newMenuItem, setNewMenuItem] = useState<Partial<MenuItem>>({
     name: '',
@@ -38,28 +43,87 @@ export default function AdminDashboard() {
     isAvailable: true,
   });
 
-  const handleAddMenuItem = () => {
-    if (!newMenuItem.name || !newMenuItem.description) {
+  // Clean up preview URL when component unmounts or image changes
+  useEffect(() => {
+    return () => {
+      if (imagePreviewUrl) {
+        revokePreviewUrl(imagePreviewUrl);
+      }
+    };
+  }, [imagePreviewUrl]);
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validation = validateImageFile(file);
+    if (!validation.valid) {
+      toast.error(validation.error);
       return;
     }
 
-    const menuItem: MenuItem = {
-      uuid: `menu-${Date.now()}`,
-      restaurantUuid: SINGLE_RESTAURANT_UUID,
-      name: newMenuItem.name,
-      description: newMenuItem.description,
-      category: newMenuItem.category || 'Main Course',
-      price: newMenuItem.price || BigInt(0),
-      isAvailable: newMenuItem.isAvailable ?? true,
-      image: undefined,
-    };
+    // Clear previous preview
+    if (imagePreviewUrl) {
+      revokePreviewUrl(imagePreviewUrl);
+    }
 
-    addMenuItem.mutate(menuItem, {
-      onSuccess: () => {
-        setShowMenuItemDialog(false);
-        setNewMenuItem({ name: '', description: '', category: '', price: BigInt(0), isAvailable: true });
-      },
-    });
+    // Set new image
+    setSelectedImageFile(file);
+    setImagePreviewUrl(createPreviewUrl(file));
+  };
+
+  const handleClearImage = () => {
+    if (imagePreviewUrl) {
+      revokePreviewUrl(imagePreviewUrl);
+    }
+    setSelectedImageFile(null);
+    setImagePreviewUrl(null);
+    setUploadProgress(0);
+  };
+
+  const handleAddMenuItem = async () => {
+    if (!newMenuItem.name || !newMenuItem.description) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      let imageBlob: ExternalBlob | undefined = undefined;
+
+      // Upload image if selected
+      if (selectedImageFile) {
+        const imageBytes = await fileToBytes(selectedImageFile);
+        imageBlob = ExternalBlob.fromBytes(imageBytes).withUploadProgress((percentage) => {
+          setUploadProgress(percentage);
+        });
+      }
+
+      const menuItem: MenuItem = {
+        uuid: `menu-${Date.now()}`,
+        restaurantUuid: SINGLE_RESTAURANT_UUID,
+        name: newMenuItem.name,
+        description: newMenuItem.description,
+        category: newMenuItem.category || 'Main Course',
+        price: newMenuItem.price || BigInt(0),
+        isAvailable: newMenuItem.isAvailable ?? true,
+        image: imageBlob,
+      };
+
+      addMenuItem.mutate(menuItem, {
+        onSuccess: () => {
+          setShowMenuItemDialog(false);
+          setNewMenuItem({ name: '', description: '', category: '', price: BigInt(0), isAvailable: true });
+          handleClearImage();
+          setUploadProgress(0);
+        },
+        onError: () => {
+          setUploadProgress(0);
+        },
+      });
+    } catch (error) {
+      toast.error('Failed to process image');
+      setUploadProgress(0);
+    }
   };
 
   const handleDeleteMenuItem = (uuid: string) => {
@@ -156,14 +220,20 @@ export default function AdminDashboard() {
         <TabsContent value="menu" className="space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-semibold">Menu Items ({menuItems.length})</h2>
-            <Dialog open={showMenuItemDialog} onOpenChange={setShowMenuItemDialog}>
+            <Dialog open={showMenuItemDialog} onOpenChange={(open) => {
+              setShowMenuItemDialog(open);
+              if (!open) {
+                handleClearImage();
+                setNewMenuItem({ name: '', description: '', category: '', price: BigInt(0), isAvailable: true });
+              }
+            }}>
               <DialogTrigger asChild>
                 <Button>
                   <Plus className="h-4 w-4 mr-2" />
                   Add Menu Item
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Add New Menu Item</DialogTitle>
                   <DialogDescription>Enter the menu item details below.</DialogDescription>
@@ -206,6 +276,81 @@ export default function AdminDashboard() {
                       placeholder="149 (for ₹149)"
                     />
                   </div>
+                  
+                  {/* Image Upload Section */}
+                  <div className="space-y-2">
+                    <Label htmlFor="image">Food Image (Optional)</Label>
+                    <div className="space-y-3">
+                      {!imagePreviewUrl ? (
+                        <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 hover:border-muted-foreground/50 transition-colors">
+                          <label htmlFor="image" className="cursor-pointer flex flex-col items-center gap-2">
+                            <div className="rounded-full bg-muted p-3">
+                              <Upload className="h-6 w-6 text-muted-foreground" />
+                            </div>
+                            <div className="text-center">
+                              <p className="text-sm font-medium">Click to upload image</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                JPEG, PNG, or WebP (max 5MB)
+                              </p>
+                            </div>
+                            <Input
+                              id="image"
+                              type="file"
+                              accept="image/jpeg,image/jpg,image/png,image/webp"
+                              onChange={handleImageSelect}
+                              className="hidden"
+                            />
+                          </label>
+                        </div>
+                      ) : (
+                        <div className="relative rounded-lg overflow-hidden border">
+                          <img
+                            src={imagePreviewUrl}
+                            alt="Preview"
+                            className="w-full h-48 object-cover"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-2 right-2"
+                            onClick={handleClearImage}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                          {uploadProgress > 0 && uploadProgress < 100 && (
+                            <div className="absolute bottom-0 left-0 right-0 bg-black/50 p-2">
+                              <div className="w-full bg-muted rounded-full h-2">
+                                <div
+                                  className="bg-primary h-2 rounded-full transition-all"
+                                  style={{ width: `${uploadProgress}%` }}
+                                />
+                              </div>
+                              <p className="text-xs text-white text-center mt-1">
+                                Uploading... {uploadProgress}%
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {imagePreviewUrl && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <ImageIcon className="h-4 w-4" />
+                          <span>{selectedImageFile?.name}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleClearImage}
+                            className="ml-auto"
+                          >
+                            Replace
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="flex items-center space-x-2">
                     <Switch
                       id="available"
@@ -214,8 +359,12 @@ export default function AdminDashboard() {
                     />
                     <Label htmlFor="available">Available</Label>
                   </div>
-                  <Button onClick={handleAddMenuItem} disabled={addMenuItem.isPending} className="w-full">
-                    {addMenuItem.isPending ? 'Adding...' : 'Add Menu Item'}
+                  <Button 
+                    onClick={handleAddMenuItem} 
+                    disabled={addMenuItem.isPending || (uploadProgress > 0 && uploadProgress < 100)} 
+                    className="w-full"
+                  >
+                    {addMenuItem.isPending ? 'Adding...' : uploadProgress > 0 && uploadProgress < 100 ? `Uploading... ${uploadProgress}%` : 'Add Menu Item'}
                   </Button>
                 </div>
               </DialogContent>
@@ -235,7 +384,16 @@ export default function AdminDashboard() {
                   <h3 className="text-xl font-semibold mb-3 capitalize">{category}</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {items.map((item) => (
-                      <Card key={item.uuid}>
+                      <Card key={item.uuid} className="overflow-hidden">
+                        {item.image && (
+                          <div className="relative h-40 overflow-hidden bg-muted">
+                            <img
+                              src={item.image.getDirectURL()}
+                              alt={item.name}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        )}
                         <CardHeader>
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
@@ -253,13 +411,21 @@ export default function AdminDashboard() {
                           </div>
                         </CardHeader>
                         <CardContent>
-                          <div className="flex items-center justify-between">
-                            <p className="text-lg font-bold text-primary">
-                              ₹{Number(item.price)}
-                            </p>
-                            <Badge variant={item.isAvailable ? 'default' : 'secondary'}>
-                              {item.isAvailable ? 'Available' : 'Unavailable'}
-                            </Badge>
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <p className="text-lg font-bold text-primary">
+                                ₹{Number(item.price)}
+                              </p>
+                              <Badge variant={item.isAvailable ? 'default' : 'secondary'}>
+                                {item.isAvailable ? 'Available' : 'Unavailable'}
+                              </Badge>
+                            </div>
+                            {!item.image && (
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <ImageIcon className="h-3 w-3" />
+                                <span>No photo uploaded</span>
+                              </div>
+                            )}
                           </div>
                         </CardContent>
                       </Card>

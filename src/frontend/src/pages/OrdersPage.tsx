@@ -1,8 +1,11 @@
+import { useEffect, useState } from 'react';
 import { useGetUserOrders, useGetSingleRestaurant } from '../hooks/useQueries';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Package, Clock, Truck, CheckCircle, XCircle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Package, Clock, Truck, CheckCircle, XCircle, MapPin, AlertCircle } from 'lucide-react';
 import type { OrderStatus } from '../backend';
+import { useLiveLocationSharing } from '../hooks/useLiveLocationSharing';
 
 const getStatusIcon = (status: OrderStatus) => {
   switch (status) {
@@ -52,6 +55,33 @@ const getStatusLabel = (status: OrderStatus) => {
 export default function OrdersPage() {
   const { data: orders = [], isLoading } = useGetUserOrders();
   const { data: restaurant } = useGetSingleRestaurant();
+  const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
+
+  // Check for newly placed order on mount
+  useEffect(() => {
+    const storedOrderId = sessionStorage.getItem('activeOrderId');
+    if (storedOrderId) {
+      setActiveOrderId(storedOrderId);
+    }
+  }, []);
+
+  // Check if the active order is still active (not delivered/cancelled)
+  useEffect(() => {
+    if (activeOrderId && orders.length > 0) {
+      const order = orders.find(o => o.uuid === activeOrderId);
+      if (order && (order.status === 'delivered' || order.status === 'cancelled')) {
+        // Order is complete, stop tracking
+        sessionStorage.removeItem('activeOrderId');
+        setActiveOrderId(null);
+      }
+    }
+  }, [orders, activeOrderId]);
+
+  // Start live location sharing for active order
+  const locationState = useLiveLocationSharing({
+    orderId: activeOrderId,
+    enabled: !!activeOrderId,
+  });
 
   const sortedOrders = [...orders].sort((a, b) => Number(b.orderTimestamp) - Number(a.orderTimestamp));
 
@@ -72,6 +102,25 @@ export default function OrdersPage() {
         <Package className="h-8 w-8" />
         Your Orders
       </h1>
+
+      {/* Location sharing status */}
+      {activeOrderId && locationState.error && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Location Sharing Unavailable</AlertTitle>
+          <AlertDescription>{locationState.error}</AlertDescription>
+        </Alert>
+      )}
+
+      {activeOrderId && locationState.isSharing && (
+        <Alert className="mb-6 border-green-500 bg-green-50 dark:bg-green-950">
+          <MapPin className="h-4 w-4 text-green-600 dark:text-green-400" />
+          <AlertTitle className="text-green-800 dark:text-green-200">Live Location Sharing Active</AlertTitle>
+          <AlertDescription className="text-green-700 dark:text-green-300">
+            Your location is being shared with the restaurant for order delivery tracking.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {sortedOrders.length === 0 ? (
         <Card>
