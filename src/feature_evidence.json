@@ -2,13 +2,11 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-on-the-frontend-automatically-start-live-location-sharing-immediately-after-a-successful-checkout-order-placement-requesting-browser-geolocation-permission-and-sending-updates-to-the-backend-once-per-second-while-the-order-remains-active",
-      "featureTitle": "On the frontend, automatically start live location sharing immediately after a successful checkout (order placement), requesting browser geolocation permission and sending updates to the backend once per second while the order remains active.",
+      "featureId": "feature-update-the-admin-ui-to-remove-restaurant-rejected-orders-from-admin-pages-without-affecting-non-admin-pages-customer-restaurant-views-specifically-the-admin-dashboard-all-orders-list-should-not-render-orders-with-status-rejected",
+      "featureTitle": "Update the admin UI to remove restaurant-rejected orders from admin pages without affecting non-admin pages (customer/restaurant views). Specifically, the Admin Dashboard “All Orders” list should not render orders with status Rejected.",
       "files": [
-        "frontend/src/hooks/useLiveLocationSharing.ts",
-        "frontend/src/hooks/useQueries.ts",
-        "frontend/src/pages/CartPage.tsx",
-        "frontend/src/pages/OrdersPage.tsx"
+        "frontend/src/components/LiveOrdersView.tsx",
+        "frontend/src/pages/AdminDashboard.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -21,48 +19,6 @@
       ],
       "testIds": [
         "REQ-3"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-update-the-admin-dashboard-s-live-orders-ui-to-display-each-active-order-s-current-live-location-lat-lng-and-how-recently-it-was-updated-refreshing-the-live-orders-feed-every-1-second-to-match-the-location-update-frequency",
-      "featureTitle": "Update the Admin Dashboard’s Live Orders UI to display each active order’s current live location (lat/lng) and how recently it was updated, refreshing the live orders feed every 1 second to match the location update frequency.",
-      "files": [
-        "frontend/src/components/LiveOrdersView.tsx",
-        "frontend/src/hooks/useQueries.ts"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "blob-storage@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-4"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-add-extend-typed-react-query-hooks-to-support-sending-customer-live-location-updates-and-consuming-live-location-data-in-the-admin-live-orders-feed-without-modifying-any-immutable-frontend-paths",
-      "featureTitle": "Add/extend typed React Query hooks to support sending customer live location updates and consuming live location data in the admin live orders feed, without modifying any immutable frontend paths.",
-      "files": [
-        "frontend/src/hooks/useQueries.ts",
-        "frontend/src/pages/OrdersPage.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "blob-storage@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-5"
       ],
       "confidence": "high"
     }

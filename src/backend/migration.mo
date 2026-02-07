@@ -1,16 +1,70 @@
+import Map "mo:core/Map";
 import List "mo:core/List";
-import Time "mo:core/Time";
+import Nat "mo:core/Nat";
+import Principal "mo:core/Principal";
+import Storage "blob-storage/Storage";
+import AccessControl "authorization/access-control";
 
 module {
-  type OldLiveOrder = {
-    orderId : Text;
-    customerName : Text;
-    customerPhone : Text;
-    deliveryAddress : Text;
+  type CuisineType = {
+    #american;
+    #barbecue;
+    #burger;
+    #chicken;
+    #chinese;
+    #fastFood;
+    #healthy;
+    #indian;
+    #italian;
+    #mexican;
+    #pizza;
+    #other : Text;
+  };
+
+  type Restaurant = {
+    uuid : Text;
+    name : Text;
+    description : Text;
+    cuisineType : CuisineType;
+    address : Text;
+    website : Text;
+    phone : Text;
+    profilePicture : ?Storage.ExternalBlob;
+  };
+
+  type MenuItem = {
+    uuid : Text;
+    restaurantUuid : Text;
+    name : Text;
+    description : Text;
+    price : Nat;
+    category : Text;
+    image : ?Storage.ExternalBlob;
+    isAvailable : Bool;
+  };
+
+  type OrderStatus = {
+    #pending;
+    #accepted;
+    #rejected;
+    #preparing;
+    #outForDelivery;
+    #delivered;
+    #cancelled;
+  };
+
+  type Order = {
+    uuid : Text;
+    userId : Principal.Principal;
+    restaurantId : Text;
     items : [OrderMenuItem];
     totalPrice : Nat;
-    orderTimestamp : Int;
     status : OrderStatus;
+    orderTimestamp : Int;
+    deliveryAddress : Text;
+    userNotes : Text;
+    customerName : Text;
+    customerPhone : Text;
   };
 
   type OrderMenuItem = {
@@ -19,19 +73,14 @@ module {
     price : Nat;
   };
 
-  type OrderStatus = {
-    #pending;
-    #preparing;
-    #outForDelivery;
-    #delivered;
-    #cancelled;
+  type CartItem = {
+    restaurantUuid : Text;
+    menuItemUuid : Text;
+    quantity : Nat;
+    price : Nat;
   };
 
-  type OldActor = {
-    liveOrders : List.List<OldLiveOrder>;
-  };
-
-  type NewLiveOrder = {
+  type LiveOrder = {
     orderId : Text;
     customerName : Text;
     customerPhone : Text;
@@ -45,21 +94,28 @@ module {
     lastLocationUpdate : ?Int;
   };
 
-  type NewActor = {
-    liveOrders : List.List<NewLiveOrder>;
+  type FoodCourtProfile = {
+    name : Text;
+    email : Text;
+    address : Text;
+    phone : Text;
   };
 
+  type OldActor = {
+    menuItems : Map.Map<Text, MenuItem>;
+    orders : Map.Map<Text, Order>;
+    carts : Map.Map<Principal.Principal, [CartItem]>;
+    searchHistory : Map.Map<Principal.Principal, List.List<Text>>;
+    orderStatusTracking : Map.Map<Text, OrderStatus>;
+    profiles : Map.Map<Principal.Principal, FoodCourtProfile>;
+    liveOrders : List.List<LiveOrder>;
+    accessControlState : AccessControl.AccessControlState;
+    nextOrderId : Nat;
+  };
+
+  type NewActor = OldActor;
+
   public func run(old : OldActor) : NewActor {
-    let newLiveOrders = old.liveOrders.map<OldLiveOrder, NewLiveOrder>(
-      func(oldOrder) {
-        {
-          oldOrder with
-          currentLatitude = null;
-          currentLongitude = null;
-          lastLocationUpdate = ?Time.now();
-        };
-      }
-    );
-    { old with liveOrders = newLiveOrders };
+    old;
   };
 };

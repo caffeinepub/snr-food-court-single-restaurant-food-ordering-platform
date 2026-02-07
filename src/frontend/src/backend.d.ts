@@ -129,7 +129,9 @@ export enum OrderStatus {
     cancelled = "cancelled",
     pending = "pending",
     outForDelivery = "outForDelivery",
-    delivered = "delivered"
+    rejected = "rejected",
+    delivered = "delivered",
+    accepted = "accepted"
 }
 export enum UserRole {
     admin = "admin",
@@ -137,6 +139,7 @@ export enum UserRole {
     guest = "guest"
 }
 export interface backendInterface {
+    acceptOrder(orderId: string): Promise<void>;
     addMenuItem(menuItem: MenuItem): Promise<void>;
     addSearchHistory(search: string): Promise<void>;
     addToCart(item: CartItem): Promise<void>;
@@ -166,6 +169,7 @@ export interface backendInterface {
     isCallerAdmin(): Promise<boolean>;
     markOrderAsDelivered(uuid: string): Promise<void>;
     placeOrder(address: string, userNotes: string, customerName: string, customerPhone: string): Promise<string>;
+    rejectOrder(orderId: string): Promise<void>;
     removeFromCart(menuItemUuid: string): Promise<void>;
     saveCallerUserProfile(profile: FoodCourtProfile): Promise<void>;
     searchMenuByName(searchTerm: string): Promise<Array<MenuItem>>;

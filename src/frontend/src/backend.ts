@@ -215,7 +215,9 @@ export enum OrderStatus {
     cancelled = "cancelled",
     pending = "pending",
     outForDelivery = "outForDelivery",
-    delivered = "delivered"
+    rejected = "rejected",
+    delivered = "delivered",
+    accepted = "accepted"
 }
 export enum UserRole {
     admin = "admin",
@@ -230,6 +232,7 @@ export interface backendInterface {
     _caffeineStorageRefillCashier(refillInformation: _CaffeineStorageRefillInformation | null): Promise<_CaffeineStorageRefillResult>;
     _caffeineStorageUpdateGatewayPrincipals(): Promise<void>;
     _initializeAccessControlWithSecret(userSecret: string): Promise<void>;
+    acceptOrder(orderId: string): Promise<void>;
     addMenuItem(menuItem: MenuItem): Promise<void>;
     addSearchHistory(search: string): Promise<void>;
     addToCart(item: CartItem): Promise<void>;
@@ -259,6 +262,7 @@ export interface backendInterface {
     isCallerAdmin(): Promise<boolean>;
     markOrderAsDelivered(uuid: string): Promise<void>;
     placeOrder(address: string, userNotes: string, customerName: string, customerPhone: string): Promise<string>;
+    rejectOrder(orderId: string): Promise<void>;
     removeFromCart(menuItemUuid: string): Promise<void>;
     saveCallerUserProfile(profile: FoodCourtProfile): Promise<void>;
     searchMenuByName(searchTerm: string): Promise<Array<MenuItem>>;
@@ -365,6 +369,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor._initializeAccessControlWithSecret(arg0);
+            return result;
+        }
+    }
+    async acceptOrder(arg0: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.acceptOrder(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.acceptOrder(arg0);
             return result;
         }
     }
@@ -722,6 +740,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async rejectOrder(arg0: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.rejectOrder(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.rejectOrder(arg0);
+            return result;
+        }
+    }
     async removeFromCart(arg0: string): Promise<void> {
         if (this.processError) {
             try {
@@ -1036,9 +1068,13 @@ function from_candid_variant_n22(_uploadFile: (file: ExternalBlob) => Promise<Ui
 } | {
     outForDelivery: null;
 } | {
+    rejected: null;
+} | {
     delivered: null;
+} | {
+    accepted: null;
 }): OrderStatus {
-    return "preparing" in value ? OrderStatus.preparing : "cancelled" in value ? OrderStatus.cancelled : "pending" in value ? OrderStatus.pending : "outForDelivery" in value ? OrderStatus.outForDelivery : "delivered" in value ? OrderStatus.delivered : value;
+    return "preparing" in value ? OrderStatus.preparing : "cancelled" in value ? OrderStatus.cancelled : "pending" in value ? OrderStatus.pending : "outForDelivery" in value ? OrderStatus.outForDelivery : "rejected" in value ? OrderStatus.rejected : "delivered" in value ? OrderStatus.delivered : "accepted" in value ? OrderStatus.accepted : value;
 }
 function from_candid_variant_n30(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     admin: null;
@@ -1265,7 +1301,11 @@ function to_candid_variant_n44(_uploadFile: (file: ExternalBlob) => Promise<Uint
 } | {
     outForDelivery: null;
 } | {
+    rejected: null;
+} | {
     delivered: null;
+} | {
+    accepted: null;
 } {
     return value == OrderStatus.preparing ? {
         preparing: null
@@ -1275,8 +1315,12 @@ function to_candid_variant_n44(_uploadFile: (file: ExternalBlob) => Promise<Uint
         pending: null
     } : value == OrderStatus.outForDelivery ? {
         outForDelivery: null
+    } : value == OrderStatus.rejected ? {
+        rejected: null
     } : value == OrderStatus.delivered ? {
         delivered: null
+    } : value == OrderStatus.accepted ? {
+        accepted: null
     } : value;
 }
 function to_candid_vec_n36(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<UpdateCartItemInput>): Array<_UpdateCartItemInput> {

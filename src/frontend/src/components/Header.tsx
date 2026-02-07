@@ -64,9 +64,39 @@ export default function Header({ currentPage, onNavigate }: HeaderProps) {
     }
   };
 
+  const handleAdminClick = async () => {
+    if (!isAuthenticated) {
+      try {
+        await login();
+        // After successful login, navigate to admin
+        onNavigate('admin');
+      } catch (error: any) {
+        console.error('Login error:', error);
+        toast.error('Please log in to access the admin dashboard');
+      }
+    } else {
+      onNavigate('admin');
+    }
+  };
+
   const handleMobileNavigate = (page: Page) => {
     onNavigate(page);
     setMobileMenuOpen(false);
+  };
+
+  const handleMobileAdminClick = async () => {
+    setMobileMenuOpen(false);
+    if (!isAuthenticated) {
+      try {
+        await login();
+        onNavigate('admin');
+      } catch (error: any) {
+        console.error('Login error:', error);
+        toast.error('Please log in to access the admin dashboard');
+      }
+    } else {
+      onNavigate('admin');
+    }
   };
 
   return (
@@ -92,25 +122,23 @@ export default function Header({ currentPage, onNavigate }: HeaderProps) {
               Menu
             </Button>
             {isAuthenticated && (
-              <>
-                <Button
-                  variant={currentPage === 'orders' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => onNavigate('orders')}
-                >
-                  <Package className="h-4 w-4 mr-2" />
-                  Orders
-                </Button>
-                <Button
-                  variant={currentPage === 'admin' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => onNavigate('admin')}
-                >
-                  <Shield className="h-4 w-4 mr-2" />
-                  Admin
-                </Button>
-              </>
+              <Button
+                variant={currentPage === 'orders' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => onNavigate('orders')}
+              >
+                <Package className="h-4 w-4 mr-2" />
+                Orders
+              </Button>
             )}
+            <Button
+              variant={currentPage === 'admin' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={handleAdminClick}
+            >
+              <Shield className="h-4 w-4 mr-2" />
+              Admin
+            </Button>
           </nav>
 
           <div className="flex items-center gap-2">
@@ -135,25 +163,23 @@ export default function Header({ currentPage, onNavigate }: HeaderProps) {
                     Menu
                   </Button>
                   {isAuthenticated && (
-                    <>
-                      <Button
-                        variant={currentPage === 'orders' ? 'default' : 'ghost'}
-                        className="justify-start"
-                        onClick={() => handleMobileNavigate('orders')}
-                      >
-                        <Package className="h-4 w-4 mr-2" />
-                        Orders
-                      </Button>
-                      <Button
-                        variant={currentPage === 'admin' ? 'default' : 'ghost'}
-                        className="justify-start"
-                        onClick={() => handleMobileNavigate('admin')}
-                      >
-                        <Shield className="h-4 w-4 mr-2" />
-                        Admin
-                      </Button>
-                    </>
+                    <Button
+                      variant={currentPage === 'orders' ? 'default' : 'ghost'}
+                      className="justify-start"
+                      onClick={() => handleMobileNavigate('orders')}
+                    >
+                      <Package className="h-4 w-4 mr-2" />
+                      Orders
+                    </Button>
                   )}
+                  <Button
+                    variant={currentPage === 'admin' ? 'default' : 'ghost'}
+                    className="justify-start"
+                    onClick={handleMobileAdminClick}
+                  >
+                    <Shield className="h-4 w-4 mr-2" />
+                    Admin
+                  </Button>
                 </nav>
               </SheetContent>
             </Sheet>

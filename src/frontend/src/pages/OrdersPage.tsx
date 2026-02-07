@@ -3,7 +3,7 @@ import { useGetUserOrders, useGetSingleRestaurant } from '../hooks/useQueries';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Package, Clock, Truck, CheckCircle, XCircle, MapPin, AlertCircle } from 'lucide-react';
+import { Package, Clock, Truck, CheckCircle, XCircle, MapPin, AlertCircle, Check, X } from 'lucide-react';
 import type { OrderStatus } from '../backend';
 import { useLiveLocationSharing } from '../hooks/useLiveLocationSharing';
 
@@ -11,6 +11,10 @@ const getStatusIcon = (status: OrderStatus) => {
   switch (status) {
     case 'pending':
       return <Clock className="h-5 w-5" />;
+    case 'accepted':
+      return <Check className="h-5 w-5" />;
+    case 'rejected':
+      return <X className="h-5 w-5" />;
     case 'preparing':
       return <Package className="h-5 w-5" />;
     case 'outForDelivery':
@@ -26,6 +30,10 @@ const getStatusColor = (status: OrderStatus) => {
   switch (status) {
     case 'pending':
       return 'bg-yellow-500';
+    case 'accepted':
+      return 'bg-green-500';
+    case 'rejected':
+      return 'bg-red-500';
     case 'preparing':
       return 'bg-blue-500';
     case 'outForDelivery':
@@ -41,6 +49,10 @@ const getStatusLabel = (status: OrderStatus) => {
   switch (status) {
     case 'pending':
       return 'Pending';
+    case 'accepted':
+      return 'Accepted';
+    case 'rejected':
+      return 'Rejected';
     case 'preparing':
       return 'Preparing';
     case 'outForDelivery':

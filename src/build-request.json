@@ -1,121 +1,76 @@
 {
   "kind": "build_request",
-  "title": "Share customer live location with restaurant after checkout (1s updates)",
+  "title": "Remove restaurant-rejected orders from admin UI and permanently delete admin-rejected orders",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Extend the backend live order model to include the customer’s latest live location (latitude/longitude) and a last-updated timestamp, and return this data in the existing admin live orders feed used by the Admin Dashboard (Live Orders area).",
+      "text": "When an admin rejects an order, permanently delete the order from backend state so it no longer appears in any admin queries.",
       "target": "backend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "recent-1"
         ],
         "quotes": [
-          "for every second  and the sharing start automatically  after order complete  and the  location must be in admin  dashboard"
+          "rejected orders are permanently deleted and immediately removed from the admin dashboard"
         ]
       },
       "acceptanceCriteria": [
-        "Backend compiles and existing endpoints continue to work for orders without any location yet (location shown as missing/null).",
-        "The admin endpoint used by the frontend live orders feed includes location fields for each live order when available."
+        "Calling backend rejectOrder(orderId) removes the order from the orders map (getAllOrders no longer returns it).",
+        "Calling backend rejectOrder(orderId) removes the order from liveOrders (getAllActiveOrders no longer returns it).",
+        "Any related tracking state for the order (e.g., orderStatusTracking) is cleared/removed so no stale entries remain.",
+        "rejectOrder(orderId) continues to enforce admin-only authorization."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Add a backend endpoint for customers to push their current location for a specific order, enforcing authorization so only the user who placed the order can update that order’s live location; reject updates for orders that are delivered or cancelled.",
+      "text": "Ensure admin live orders endpoints do not return rejected orders, so that if an order’s status becomes #rejected (e.g., via restaurant rejection workflow), it is removed from the admin live orders view.",
       "target": "backend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "recent-2"
         ],
         "quotes": [
-          "when they are  order send to restaurant  their locatino live",
-          "for every second  and the sharing start automatically  after order complete"
+          "when the restaurant rejects the order, it should be removed only from the admin page"
         ]
       },
       "acceptanceCriteria": [
-        "Calling the location-update endpoint as a different principal than the order owner traps/returns an error (authorization enforced).",
-        "Calling the location-update endpoint for a delivered/cancelled order traps/returns an error (no further updates allowed).",
-        "A successful update is reflected in the admin live orders feed on the next poll."
+        "getAllActiveOrders excludes orders with status #rejected (in addition to already excluding #delivered and #cancelled).",
+        "After an order transitions to #rejected (by any mechanism), it stops appearing in the Live Orders list on the next poll/refetch."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "On the frontend, automatically start live location sharing immediately after a successful checkout (order placement), requesting browser geolocation permission and sending updates to the backend once per second while the order remains active.",
+      "text": "Update the admin UI to remove restaurant-rejected orders from admin pages without affecting non-admin pages (customer/restaurant views). Specifically, the Admin Dashboard “All Orders” list should not render orders with status Rejected.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "recent-2",
+          "recent-3"
         ],
         "quotes": [
-          "the sharing start automatically  after order complete",
-          "for every second"
+          "only admin page",
+          "do now"
         ]
       },
       "acceptanceCriteria": [
-        "After placing an order successfully, the app requests geolocation permission and begins sending location updates approximately once per second.",
-        "If the user denies geolocation permission or the browser does not support geolocation, the app does not crash and shows a clear English message explaining that live location sharing is unavailable.",
-        "Location updates stop automatically when the order becomes delivered or cancelled (or when the app determines the order is no longer active)."
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "text": "Update the Admin Dashboard’s Live Orders UI to display each active order’s current live location (lat/lng) and how recently it was updated, refreshing the live orders feed every 1 second to match the location update frequency.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "location must be in admin  dashboard",
-          "for every second"
-        ]
-      },
-      "acceptanceCriteria": [
-        "The Live Orders view shows live location details for orders that have them (e.g., latitude/longitude and a “last updated” indicator).",
-        "The admin live orders query polls every 1 second (instead of 5 seconds) and the UI updates accordingly.",
-        "Orders without location data display an English fallback (e.g., “Location not available yet”)."
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "text": "Add/extend typed React Query hooks to support sending customer live location updates and consuming live location data in the admin live orders feed, without modifying any immutable frontend paths.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ]
-      },
-      "acceptanceCriteria": [
-        "A dedicated React Query mutation (or equivalent) exists for pushing live location updates to the backend.",
-        "Existing hooks continue to work, and the admin Live Orders view consumes the updated live orders type safely.",
-        "No changes are made to any paths listed under frontend.immutablePaths in SYSTEM_CONTEXT."
+        "In AdminDashboard, the data rendered under the “All Orders” tab does not include orders whose status is Rejected.",
+        "Rejecting an order from the admin UI results in it disappearing from the admin UI immediately after mutation success (via existing React Query invalidation/refetch).",
+        "No user-facing text is changed to a non-English language (keep all UI messages in English)."
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single Motoko actor with all logic in backend/main.mo (no additional backend services).",
-    "Do not edit any files under frontend/src/components/ui or any paths listed in SYSTEM_CONTEXT.frontend.immutablePaths.",
-    "Use English for all user-facing text.",
-    "No WebSockets or real-time push: implement “live” behavior via polling and client-side periodic updates."
+    "Backend must remain a single Motoko actor in backend/main.mo (do not introduce additional backend services).",
+    "Do not modify files under frontend immutable paths: frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, frontend/src/components/ui/*."
   ],
   "nonGoals": [
-    "Implementing map tiles, GPS navigation, or external maps/geolocation services integration.",
-    "Sharing location with non-admin users or exposing location publicly.",
-    "Storing long-term location history/trails for an order (only the latest live location is required)."
+    "Implementing a separate restaurant-authenticated dashboard or role model distinct from admin.",
+    "Adding real-time/WebSocket updates (continue using existing polling/React Query refetching).",
+    "Deleting rejected orders from customer order history (unless they were admin-rejected and thus deleted globally by design)."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
-  },
-  "userProfileUpdate": {
-    "goalsToAdd": [],
-    "goalsToRemove": [],
-    "preferencesToAdd": [],
-    "preferencesToRemove": [],
-    "miscToAdd": [],
-    "miscToRemove": [],
-    "fieldsToSet": {},
-    "fieldsToDelete": []
   }
 }

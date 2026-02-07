@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useGetAllMenuItems, useGetAllOrders, useAddMenuItem, useUpdateOrderStatus, useDeleteMenuItem, useGetSingleRestaurant, useIsCallerAdmin } from '../hooks/useQueries';
+import { useGetAllMenuItems, useGetAllOrders, useAddMenuItem, useUpdateOrderStatus, useDeleteMenuItem, useGetSingleRestaurant, useIsCallerAdmin, useAcceptOrder, useRejectOrder } from '../hooks/useQueries';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Shield, Plus, UtensilsCrossed, Package, Trash2, Radio, AlertCircle, XCircle, Upload, X, Image as ImageIcon } from 'lucide-react';
+import { Shield, Plus, UtensilsCrossed, Package, Trash2, Radio, AlertCircle, XCircle, Upload, X, Image as ImageIcon, CheckCircle } from 'lucide-react';
 import { OrderStatus, ExternalBlob } from '../backend';
 import type { MenuItem } from '../backend';
 import LiveOrdersView from '../components/LiveOrdersView';
@@ -29,6 +29,8 @@ export default function AdminDashboard() {
   const addMenuItem = useAddMenuItem();
   const deleteMenuItem = useDeleteMenuItem();
   const updateOrderStatus = useUpdateOrderStatus();
+  const acceptOrder = useAcceptOrder();
+  const rejectOrder = useRejectOrder();
 
   const [showMenuItemDialog, setShowMenuItemDialog] = useState(false);
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
@@ -42,6 +44,9 @@ export default function AdminDashboard() {
     price: BigInt(0),
     isAvailable: true,
   });
+
+  // Filter out rejected orders from the admin view
+  const visibleOrders = orders.filter(order => order.status !== OrderStatus.rejected);
 
   // Clean up preview URL when component unmounts or image changes
   useEffect(() => {
@@ -140,13 +145,36 @@ export default function AdminDashboard() {
     updateOrderStatus.mutate({ uuid: orderId, status: OrderStatus.cancelled });
   };
 
+  const handleAcceptOrder = (orderId: string) => {
+    acceptOrder.mutate(orderId);
+  };
+
+  const handleRejectOrder = (orderId: string) => {
+    rejectOrder.mutate(orderId);
+  };
+
   const getStatusLabel = (status: OrderStatus) => {
     switch (status) {
       case OrderStatus.pending: return 'Pending';
+      case OrderStatus.accepted: return 'Accepted';
+      case OrderStatus.rejected: return 'Rejected';
       case OrderStatus.preparing: return 'Preparing';
       case OrderStatus.outForDelivery: return 'Out for Delivery';
       case OrderStatus.delivered: return 'Delivered';
       case OrderStatus.cancelled: return 'Cancelled';
+    }
+  };
+
+  const getStatusVariant = (status: OrderStatus): 'default' | 'secondary' | 'destructive' | 'outline' => {
+    switch (status) {
+      case OrderStatus.pending: return 'secondary';
+      case OrderStatus.accepted: return 'default';
+      case OrderStatus.rejected: return 'destructive';
+      case OrderStatus.preparing: return 'default';
+      case OrderStatus.outForDelivery: return 'default';
+      case OrderStatus.delivered: return 'outline';
+      case OrderStatus.cancelled: return 'destructive';
+      default: return 'default';
     }
   };
 
@@ -411,21 +439,11 @@ export default function AdminDashboard() {
                           </div>
                         </CardHeader>
                         <CardContent>
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <p className="text-lg font-bold text-primary">
-                                ₹{Number(item.price)}
-                              </p>
-                              <Badge variant={item.isAvailable ? 'default' : 'secondary'}>
-                                {item.isAvailable ? 'Available' : 'Unavailable'}
-                              </Badge>
-                            </div>
-                            {!item.image && (
-                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                <ImageIcon className="h-3 w-3" />
-                                <span>No photo uploaded</span>
-                              </div>
-                            )}
+                          <div className="flex items-center justify-between">
+                            <span className="text-2xl font-bold text-primary">₹{Number(item.price)}</span>
+                            <Badge variant={item.isAvailable ? 'default' : 'secondary'}>
+                              {item.isAvailable ? 'Available' : 'Unavailable'}
+                            </Badge>
                           </div>
                         </CardContent>
                       </Card>
@@ -438,87 +456,123 @@ export default function AdminDashboard() {
         </TabsContent>
 
         <TabsContent value="orders" className="space-y-4">
-          <h2 className="text-2xl font-semibold">All Orders ({orders.length})</h2>
-
-          {orders.length === 0 ? (
+          <h2 className="text-2xl font-semibold">All Orders ({visibleOrders.length})</h2>
+          {visibleOrders.length === 0 ? (
             <Card>
-              <CardContent className="py-16 text-center text-muted-foreground">
-                No orders yet
+              <CardContent className="py-8 text-center text-muted-foreground">
+                No orders yet. Orders will appear here once customers place them.
               </CardContent>
             </Card>
           ) : (
             <div className="space-y-4">
-              {orders.map((order) => {
-                const canCancel = order.status !== OrderStatus.delivered && order.status !== OrderStatus.cancelled;
-                
-                return (
-                  <Card key={order.uuid}>
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
+              {visibleOrders
+                .sort((a, b) => Number(b.orderTimestamp) - Number(a.orderTimestamp))
+                .map((order) => {
+                  const isPending = order.status === OrderStatus.pending;
+                  
+                  return (
+                    <Card key={order.uuid}>
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <CardTitle>Order #{order.uuid.slice(-8)}</CardTitle>
+                            <CardDescription>
+                              {new Date(Number(order.orderTimestamp) / 1_000_000).toLocaleString()}
+                            </CardDescription>
+                          </div>
+                          <Badge variant={getStatusVariant(order.status)}>
+                            {getStatusLabel(order.status)}
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-sm text-muted-foreground">Customer</p>
+                            <p className="font-medium">{order.customerName}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">Phone</p>
+                            <p className="font-medium">{order.customerPhone}</p>
+                          </div>
+                        </div>
                         <div>
-                          <CardTitle>Order {order.uuid}</CardTitle>
-                          <CardDescription>
-                            {order.items.length} item(s) • ₹{Number(order.totalPrice)}
-                          </CardDescription>
+                          <p className="text-sm text-muted-foreground">Delivery Address</p>
+                          <p className="font-medium">{order.deliveryAddress}</p>
                         </div>
-                        <Badge>{getStatusLabel(order.status)}</Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4 text-sm">
+                        {order.userNotes && (
                           <div>
-                            <span className="text-muted-foreground">Customer:</span>
-                            <span className="ml-2">{order.customerName}</span>
+                            <p className="text-sm text-muted-foreground">Notes</p>
+                            <p className="font-medium">{order.userNotes}</p>
                           </div>
-                          <div>
-                            <span className="text-muted-foreground">Phone:</span>
-                            <span className="ml-2">{order.customerPhone}</span>
+                        )}
+                        <div>
+                          <p className="text-sm text-muted-foreground mb-2">Items</p>
+                          <ul className="space-y-1">
+                            {order.items.map((item, idx) => (
+                              <li key={idx} className="flex justify-between text-sm">
+                                <span>Item {item.uuid} × {Number(item.quantity)}</span>
+                                <span>₹{Number(item.price) * Number(item.quantity)}</span>
+                              </li>
+                            ))}
+                          </ul>
+                          <div className="flex justify-between font-bold mt-2 pt-2 border-t">
+                            <span>Total</span>
+                            <span className="text-primary">₹{Number(order.totalPrice)}</span>
                           </div>
-                          <div className="col-span-2">
-                            <span className="text-muted-foreground">Address:</span>
-                            <span className="ml-2">{order.deliveryAddress}</span>
-                          </div>
-                          {order.userNotes && (
-                            <div className="col-span-2">
-                              <span className="text-muted-foreground">Notes:</span>
-                              <span className="ml-2">{order.userNotes}</span>
-                            </div>
-                          )}
                         </div>
-                        <div className="flex gap-2">
-                          <Select
-                            value={order.status}
-                            onValueChange={(value) => handleUpdateOrderStatus(order.uuid, value as OrderStatus)}
-                          >
-                            <SelectTrigger className="w-[200px]">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value={OrderStatus.pending}>Pending</SelectItem>
-                              <SelectItem value={OrderStatus.preparing}>Preparing</SelectItem>
-                              <SelectItem value={OrderStatus.outForDelivery}>Out for Delivery</SelectItem>
-                              <SelectItem value={OrderStatus.delivered}>Delivered</SelectItem>
-                              <SelectItem value={OrderStatus.cancelled}>Cancelled</SelectItem>
-                            </SelectContent>
-                          </Select>
 
-                          {canCancel && (
+                        {isPending ? (
+                          <div className="grid grid-cols-2 gap-2 pt-2">
+                            <Button
+                              variant="default"
+                              className="bg-green-600 hover:bg-green-700"
+                              onClick={() => handleAcceptOrder(order.uuid)}
+                              disabled={acceptOrder.isPending || rejectOrder.isPending}
+                            >
+                              <CheckCircle className="h-4 w-4 mr-2" />
+                              Accept
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              onClick={() => handleRejectOrder(order.uuid)}
+                              disabled={acceptOrder.isPending || rejectOrder.isPending}
+                            >
+                              <XCircle className="h-4 w-4 mr-2" />
+                              Reject
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex gap-2 pt-2">
+                            <Select
+                              value={order.status}
+                              onValueChange={(value) => handleUpdateOrderStatus(order.uuid, value as OrderStatus)}
+                            >
+                              <SelectTrigger className="flex-1">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value={OrderStatus.pending}>Pending</SelectItem>
+                                <SelectItem value={OrderStatus.accepted}>Accepted</SelectItem>
+                                <SelectItem value={OrderStatus.rejected}>Rejected</SelectItem>
+                                <SelectItem value={OrderStatus.preparing}>Preparing</SelectItem>
+                                <SelectItem value={OrderStatus.outForDelivery}>Out for Delivery</SelectItem>
+                                <SelectItem value={OrderStatus.delivered}>Delivered</SelectItem>
+                                <SelectItem value={OrderStatus.cancelled}>Cancelled</SelectItem>
+                              </SelectContent>
+                            </Select>
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                <Button 
-                                  variant="destructive"
-                                  disabled={updateOrderStatus.isPending}
-                                >
+                                <Button variant="destructive" disabled={updateOrderStatus.isPending}>
                                   <XCircle className="h-4 w-4 mr-2" />
-                                  Cancel order
+                                  Cancel
                                 </Button>
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle>Are you sure you want to cancel this order?</AlertDialogTitle>
+                                  <AlertDialogTitle>Cancel this order?</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    This action will mark the order as cancelled. The customer will be notified that their order has been cancelled.
+                                    This will mark the order as cancelled. This action cannot be undone.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
@@ -532,13 +586,12 @@ export default function AdminDashboard() {
                                 </AlertDialogFooter>
                               </AlertDialogContent>
                             </AlertDialog>
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
             </div>
           )}
         </TabsContent>

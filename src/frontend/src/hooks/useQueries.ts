@@ -278,6 +278,48 @@ export function useUpdateOrderStatus() {
   });
 }
 
+export function useAcceptOrder() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (orderId: string) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.acceptOrder(orderId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['allOrders'] });
+      queryClient.invalidateQueries({ queryKey: ['userOrders'] });
+      queryClient.invalidateQueries({ queryKey: ['liveOrders'] });
+      toast.success('Order accepted');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to accept order');
+    },
+  });
+}
+
+export function useRejectOrder() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (orderId: string) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.rejectOrder(orderId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['allOrders'] });
+      queryClient.invalidateQueries({ queryKey: ['userOrders'] });
+      queryClient.invalidateQueries({ queryKey: ['liveOrders'] });
+      toast.success('Order rejected');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to reject order');
+    },
+  });
+}
+
 // Live Location Tracking
 export function useUpdateCustomerLocationOnOrder() {
   const { actor } = useActor();

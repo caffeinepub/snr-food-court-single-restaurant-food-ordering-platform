@@ -8,11 +8,11 @@ import Runtime "mo:core/Runtime";
 import Nat "mo:core/Nat";
 import Order "mo:core/Order";
 import Time "mo:core/Time";
+import Migration "migration";
 import Storage "blob-storage/Storage";
 import MixinStorage "blob-storage/Mixin";
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
-import Migration "migration";
 
 (with migration = Migration.run)
 actor {
@@ -103,6 +103,8 @@ actor {
 
   type OrderStatus = {
     #pending;
+    #accepted;
+    #rejected;
     #preparing;
     #outForDelivery;
     #delivered;
@@ -522,6 +524,59 @@ actor {
     };
   };
 
+  public shared ({ caller }) func acceptOrder(orderId : Text) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can accept orders");
+    };
+
+    switch (orders.get(orderId)) {
+      case (null) { Runtime.trap("Order not found") };
+      case (?order) {
+        if (order.status != #pending) {
+          Runtime.trap("Can only accept pending orders");
+        };
+
+        let updatedOrder : Order = {
+          uuid = order.uuid;
+          userId = order.userId;
+          restaurantId = order.restaurantId;
+          items = order.items;
+          totalPrice = order.totalPrice;
+          status = #accepted;
+          orderTimestamp = order.orderTimestamp;
+          deliveryAddress = order.deliveryAddress;
+          userNotes = order.userNotes;
+          customerName = order.customerName;
+          customerPhone = order.customerPhone;
+        };
+        orders.add(orderId, updatedOrder);
+      };
+    };
+  };
+
+  public shared ({ caller }) func rejectOrder(orderId : Text) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can reject orders");
+    };
+
+    switch (orders.get(orderId)) {
+      case (null) { Runtime.trap("Order not found") };
+      case (?order) {
+        if (order.status != #pending) {
+          Runtime.trap("Can only reject pending orders");
+        };
+
+        // Remove the order entirely from the orders map
+        orders.remove(orderId);
+
+        // Also remove from liveOrders list
+        let filteredLiveOrders = liveOrders.filter(func(liveOrder) { liveOrder.orderId != orderId });
+        liveOrders.clear();
+        liveOrders.addAll(filteredLiveOrders.values());
+      };
+    };
+  };
+
   public query ({ caller }) func getAllActiveOrders() : async [LiveOrder] {
     if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
       Runtime.trap("Unauthorized: Only admins can perform this action");
@@ -804,3 +859,4 @@ actor {
     };
   };
 };
+

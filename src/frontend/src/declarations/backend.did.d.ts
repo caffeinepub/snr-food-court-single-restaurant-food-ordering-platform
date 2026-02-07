@@ -81,7 +81,9 @@ export type OrderStatus = { 'preparing' : null } |
   { 'cancelled' : null } |
   { 'pending' : null } |
   { 'outForDelivery' : null } |
-  { 'delivered' : null };
+  { 'rejected' : null } |
+  { 'delivered' : null } |
+  { 'accepted' : null };
 export interface Restaurant {
   'name' : string,
   'uuid' : string,
@@ -132,6 +134,7 @@ export interface _SERVICE {
   >,
   '_caffeineStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
+  'acceptOrder' : ActorMethod<[string], undefined>,
   'addMenuItem' : ActorMethod<[MenuItem], undefined>,
   'addSearchHistory' : ActorMethod<[string], undefined>,
   'addToCart' : ActorMethod<[CartItem], undefined>,
@@ -166,6 +169,7 @@ export interface _SERVICE {
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'markOrderAsDelivered' : ActorMethod<[string], undefined>,
   'placeOrder' : ActorMethod<[string, string, string, string], string>,
+  'rejectOrder' : ActorMethod<[string], undefined>,
   'removeFromCart' : ActorMethod<[string], undefined>,
   'saveCallerUserProfile' : ActorMethod<[FoodCourtProfile], undefined>,
   'searchMenuByName' : ActorMethod<[string], Array<MenuItem>>,

@@ -1,24 +1,36 @@
-import { useEffect, useRef } from 'react';
-import { useGetAllActiveOrders, useUpdateOrderStatus, useGetAllMenuItems, useIsCallerAdmin } from '../hooks/useQueries';
+import { useEffect, useRef, useState } from 'react';
+import { useGetAllActiveOrders, useUpdateOrderStatus, useGetAllMenuItems, useIsCallerAdmin, useAcceptOrder, useRejectOrder } from '../hooks/useQueries';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Bell, Clock, Phone, MapPin, Package, XCircle, AlertCircle, Navigation } from 'lucide-react';
+import { Bell, Clock, Phone, MapPin, Package, XCircle, AlertCircle, Navigation, Eye, CheckCircle, X } from 'lucide-react';
 import { OrderStatus } from '../backend';
 import type { LiveOrder } from '../backend';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import LiveOrderDetailsModal from './LiveOrderDetailsModal';
 
 export default function LiveOrdersView() {
   const { data: isAdmin = false, isLoading: isAdminLoading } = useIsCallerAdmin();
   const { data: liveOrders = [], isLoading, isFetched, isError, error } = useGetAllActiveOrders(isAdmin);
   const { data: menuItems = [] } = useGetAllMenuItems();
   const updateOrderStatus = useUpdateOrderStatus();
+  const acceptOrder = useAcceptOrder();
+  const rejectOrder = useRejectOrder();
   
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const hasLoadedOnceRef = useRef(false);
   const previousOrderIdsRef = useRef<Set<string>>(new Set());
+
+  // Filter out rejected orders from the live orders view (defensive UI-side filter)
+  const visibleLiveOrders = liveOrders.filter(order => order.status !== OrderStatus.rejected);
+
+  // Derive selected order from current visible orders data to ensure it updates with polling
+  const selectedOrder = selectedOrderId 
+    ? visibleLiveOrders.find(order => order.orderId === selectedOrderId) || null
+    : null;
 
   useEffect(() => {
     // Only process after the first successful fetch
@@ -27,12 +39,12 @@ export default function LiveOrdersView() {
     if (!hasLoadedOnceRef.current) {
       // First load - just record the current order IDs
       hasLoadedOnceRef.current = true;
-      previousOrderIdsRef.current = new Set(liveOrders.map(order => order.orderId));
+      previousOrderIdsRef.current = new Set(visibleLiveOrders.map(order => order.orderId));
       return;
     }
 
     // Subsequent loads - check for new orders
-    const currentOrderIds = new Set(liveOrders.map(order => order.orderId));
+    const currentOrderIds = new Set(visibleLiveOrders.map(order => order.orderId));
     const newOrderIds = [...currentOrderIds].filter(id => !previousOrderIdsRef.current.has(id));
 
     if (newOrderIds.length > 0) {
@@ -43,11 +55,13 @@ export default function LiveOrdersView() {
     }
 
     previousOrderIdsRef.current = currentOrderIds;
-  }, [liveOrders, isFetched, isAdmin]);
+  }, [visibleLiveOrders, isFetched, isAdmin]);
 
   const getStatusLabel = (status: OrderStatus) => {
     switch (status) {
       case OrderStatus.pending: return 'Pending';
+      case OrderStatus.accepted: return 'Accepted';
+      case OrderStatus.rejected: return 'Rejected';
       case OrderStatus.preparing: return 'Preparing';
       case OrderStatus.outForDelivery: return 'Out for Delivery';
       case OrderStatus.delivered: return 'Delivered';
@@ -58,6 +72,8 @@ export default function LiveOrdersView() {
   const getStatusVariant = (status: OrderStatus): 'default' | 'secondary' | 'destructive' | 'outline' => {
     switch (status) {
       case OrderStatus.pending: return 'secondary';
+      case OrderStatus.accepted: return 'default';
+      case OrderStatus.rejected: return 'destructive';
       case OrderStatus.preparing: return 'default';
       case OrderStatus.outForDelivery: return 'default';
       case OrderStatus.delivered: return 'outline';
@@ -77,6 +93,14 @@ export default function LiveOrdersView() {
 
   const handleCancelOrder = (orderId: string) => {
     updateOrderStatus.mutate({ uuid: orderId, status: OrderStatus.cancelled });
+  };
+
+  const handleAcceptOrder = (orderId: string) => {
+    acceptOrder.mutate(orderId);
+  };
+
+  const handleRejectOrder = (orderId: string) => {
+    rejectOrder.mutate(orderId);
   };
 
   const formatTimestamp = (timestamp: bigint) => {
@@ -172,11 +196,11 @@ export default function LiveOrdersView() {
         </div>
         <Badge variant="outline" className="text-lg px-4 py-2">
           <Package className="h-4 w-4 mr-2" />
-          {liveOrders.length} Active
+          {visibleLiveOrders.length} Active
         </Badge>
       </div>
 
-      {liveOrders.length === 0 ? (
+      {visibleLiveOrders.length === 0 ? (
         <Card>
           <CardContent className="py-16 text-center text-muted-foreground">
             <Package className="h-16 w-16 mx-auto mb-4 opacity-50" />
@@ -186,7 +210,8 @@ export default function LiveOrdersView() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {liveOrders.map((order: LiveOrder) => {
+          {visibleLiveOrders.map((order: LiveOrder) => {
+            const isPending = order.status === OrderStatus.pending;
             const canCancel = order.status !== OrderStatus.delivered && order.status !== OrderStatus.cancelled;
             const hasLocation = order.currentLatitude !== undefined && order.currentLongitude !== undefined;
             
@@ -269,52 +294,88 @@ export default function LiveOrdersView() {
                   </div>
 
                   <div className="pt-2 space-y-2">
-                    <Select
-                      value={order.status}
-                      onValueChange={(value) => handleUpdateOrderStatus(order.orderId, value as OrderStatus)}
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => setSelectedOrderId(order.orderId)}
                     >
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={OrderStatus.pending}>Pending</SelectItem>
-                        <SelectItem value={OrderStatus.preparing}>Preparing</SelectItem>
-                        <SelectItem value={OrderStatus.outForDelivery}>Out for Delivery</SelectItem>
-                        <SelectItem value={OrderStatus.delivered}>Delivered</SelectItem>
-                        <SelectItem value={OrderStatus.cancelled}>Cancelled</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      <Eye className="h-4 w-4 mr-2" />
+                      View details
+                    </Button>
 
-                    {canCancel && (
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button 
-                            variant="destructive" 
-                            className="w-full"
-                            disabled={updateOrderStatus.isPending}
-                          >
-                            <XCircle className="h-4 w-4 mr-2" />
-                            Cancel order
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Are you sure you want to cancel this order?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This action will mark the order as cancelled. The customer will be notified that their order has been cancelled.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>No, keep order</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleCancelOrder(order.orderId)}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            >
-                              Yes, cancel order
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                    {isPending ? (
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button
+                          variant="default"
+                          className="w-full bg-green-600 hover:bg-green-700"
+                          onClick={() => handleAcceptOrder(order.orderId)}
+                          disabled={acceptOrder.isPending || rejectOrder.isPending}
+                        >
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          Accept
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          className="w-full"
+                          onClick={() => handleRejectOrder(order.orderId)}
+                          disabled={acceptOrder.isPending || rejectOrder.isPending}
+                        >
+                          <X className="h-4 w-4 mr-2" />
+                          Reject
+                        </Button>
+                      </div>
+                    ) : (
+                      <>
+                        <Select
+                          value={order.status}
+                          onValueChange={(value) => handleUpdateOrderStatus(order.orderId, value as OrderStatus)}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={OrderStatus.pending}>Pending</SelectItem>
+                            <SelectItem value={OrderStatus.accepted}>Accepted</SelectItem>
+                            <SelectItem value={OrderStatus.rejected}>Rejected</SelectItem>
+                            <SelectItem value={OrderStatus.preparing}>Preparing</SelectItem>
+                            <SelectItem value={OrderStatus.outForDelivery}>Out for Delivery</SelectItem>
+                            <SelectItem value={OrderStatus.delivered}>Delivered</SelectItem>
+                            <SelectItem value={OrderStatus.cancelled}>Cancelled</SelectItem>
+                          </SelectContent>
+                        </Select>
+
+                        {canCancel && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button 
+                                variant="destructive" 
+                                className="w-full"
+                                disabled={updateOrderStatus.isPending}
+                              >
+                                <XCircle className="h-4 w-4 mr-2" />
+                                Cancel order
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure you want to cancel this order?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This action will mark the order as cancelled. The customer will be notified that their order has been cancelled.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>No, keep order</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleCancelOrder(order.orderId)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Yes, cancel order
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                      </>
                     )}
                   </div>
                 </CardContent>
@@ -323,6 +384,13 @@ export default function LiveOrdersView() {
           })}
         </div>
       )}
+
+      <LiveOrderDetailsModal
+        order={selectedOrder}
+        isOpen={!!selectedOrderId}
+        onClose={() => setSelectedOrderId(null)}
+        menuItems={menuItems}
+      />
     </div>
   );
 }

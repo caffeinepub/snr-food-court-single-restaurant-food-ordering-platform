@@ -46,7 +46,9 @@ export const OrderStatus = IDL.Variant({
   'cancelled' : IDL.Null,
   'pending' : IDL.Null,
   'outForDelivery' : IDL.Null,
+  'rejected' : IDL.Null,
   'delivered' : IDL.Null,
+  'accepted' : IDL.Null,
 });
 export const OrderMenuItem = IDL.Record({
   'uuid' : IDL.Text,
@@ -148,6 +150,7 @@ export const idlService = IDL.Service({
     ),
   '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+  'acceptOrder' : IDL.Func([IDL.Text], [], []),
   'addMenuItem' : IDL.Func([MenuItem], [], []),
   'addSearchHistory' : IDL.Func([IDL.Text], [], []),
   'addToCart' : IDL.Func([CartItem], [], []),
@@ -197,6 +200,7 @@ export const idlService = IDL.Service({
       [IDL.Text],
       [],
     ),
+  'rejectOrder' : IDL.Func([IDL.Text], [], []),
   'removeFromCart' : IDL.Func([IDL.Text], [], []),
   'saveCallerUserProfile' : IDL.Func([FoodCourtProfile], [], []),
   'searchMenuByName' : IDL.Func([IDL.Text], [IDL.Vec(MenuItem)], ['query']),
@@ -267,7 +271,9 @@ export const idlFactory = ({ IDL }) => {
     'cancelled' : IDL.Null,
     'pending' : IDL.Null,
     'outForDelivery' : IDL.Null,
+    'rejected' : IDL.Null,
     'delivered' : IDL.Null,
+    'accepted' : IDL.Null,
   });
   const OrderMenuItem = IDL.Record({
     'uuid' : IDL.Text,
@@ -369,6 +375,7 @@ export const idlFactory = ({ IDL }) => {
       ),
     '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+    'acceptOrder' : IDL.Func([IDL.Text], [], []),
     'addMenuItem' : IDL.Func([MenuItem], [], []),
     'addSearchHistory' : IDL.Func([IDL.Text], [], []),
     'addToCart' : IDL.Func([CartItem], [], []),
@@ -426,6 +433,7 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Text],
         [],
       ),
+    'rejectOrder' : IDL.Func([IDL.Text], [], []),
     'removeFromCart' : IDL.Func([IDL.Text], [], []),
     'saveCallerUserProfile' : IDL.Func([FoodCourtProfile], [], []),
     'searchMenuByName' : IDL.Func([IDL.Text], [IDL.Vec(MenuItem)], ['query']),

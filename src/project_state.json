@@ -1,272 +1,20 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "SNR Food Court Food Delivery Platform is a single-restaurant food ordering web application built for the Internet Computer. A Motoko canister backend exposes APIs for a fixed restaurant profile, menu item management (including optional image blobs), per-user carts, order placement and tracking, and admin-only order operations including a live/active orders feed. A React + TypeScript single-page frontend authenticates users via Internet Identity, creates an identity-backed canister actor, and uses TanStack React Query hooks for all backend I/O with cache invalidation and toast-based UX feedback.",
+  "summary": "Order management behavior updates for admin dashboard: rejected orders should be removed from the admin view (and in some cases deleted).",
+  "architectural_notes": [
+    "Define rejection handling per actor: admin rejection triggers backend deletion; restaurant rejection triggers admin-dashboard-only removal."
+  ],
+  "known_issues": [
+    "Draft app expiry and deployment failures occurred during attempts to deploy Version 37."
+  ],
+  "isFixRequest": false,
   "existing_features": [
     {
-      "id": "IF-1",
-      "title": "Internet Identity authentication provider",
-      "synonyms": [
-        "Internet Identity",
-        "AuthClient",
-        "login/logout",
-        "InternetIdentityProvider"
-      ],
-      "description": "Provides a React context around @dfinity/auth-client to load persisted identities, perform Internet Identity login, expose login lifecycle status flags, and logout/clear identity state.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-2",
-      "title": "Identity-aware canister actor creation and lifecycle management",
-      "synonyms": [
-        "useActor",
-        "createActorWithConfig",
-        "principal-scoped actor",
-        "identity-backed actor"
-      ],
-      "description": "Creates a canister actor using the current identity (or anonymous actor when logged out). When the actor changes (principal change), it invalidates and refetches React Query data so UI stays consistent across auth transitions.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-3",
-      "title": "Admin bootstrap via secret token and backend environment variable",
-      "synonyms": [
-        "_initializeAccessControlWithSecret",
-        "CAFFEINE_ADMIN_TOKEN",
-        "admin bootstrap"
-      ],
-      "description": "On authenticated actor creation, the frontend calls a backend initialization method passing a secret token; the backend compares it against CAFFEINE_ADMIN_TOKEN and, if applicable, assigns the caller as admin (otherwise registers as user).",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-4",
-      "title": "Secret handling via URL hash extraction and session persistence",
-      "synonyms": [
-        "getSecretParameter",
-        "getSecretFromHash",
-        "sessionStorage",
-        "clearParamFromHash"
-      ],
-      "description": "Utilities extract sensitive parameters from the URL hash fragment, persist them in sessionStorage for the session, and remove them from the URL to reduce leakage via history/referrers.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-5",
-      "title": "Role-based access control (RBAC) and admin checks",
-      "synonyms": [
-        "AccessControl",
-        "getCallerUserRole",
-        "isCallerAdmin",
-        "assignCallerUserRole"
-      ],
-      "description": "Backend access-control supports admin/user/guest roles, first-time registration via initialization, admin role assignment, and per-endpoint permission checks. Frontend uses isCallerAdmin to gate admin-only UI and polling.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-6",
-      "title": "Typed React Query hooks for backend API",
-      "synonyms": [
-        "useQueries",
-        "TanStack React Query",
-        "cache invalidation",
-        "mutations"
-      ],
-      "description": "Implements query/mutation hooks for restaurant profile, menu items, cart, orders, user profiles, and admin checks with stable cache keys, conditional enablement, invalidation on mutation success, and toast-based success/error UX.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-7",
-      "title": "Single restaurant profile API",
-      "synonyms": [
-        "getSingleRestaurant",
-        "single-tenant restaurant"
-      ],
-      "description": "Backend exposes a fixed restaurant record (uuid \"snr-food-court\") used for branding and contact information throughout the UI (header/footer/ordering views).",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-8",
-      "title": "Menu item catalog APIs with admin-only write operations",
-      "synonyms": [
-        "getAllMenuItems",
-        "getMenuItem",
-        "addMenuItem",
-        "deleteMenuItem",
-        "updateMenuItem"
-      ],
-      "description": "Backend stores menu items in a map and provides list/get endpoints. Admin-only endpoints allow adding, deleting, and partially updating menu items including availability and optional image blob data.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-9",
-      "title": "Frontend menu browsing with search and category filtering",
-      "synonyms": [
-        "HomePage",
-        "search",
-        "category filter",
-        "grouped menu"
-      ],
-      "description": "Displays menu items grouped by category, supports text search across name/description, and allows filtering by category. Items show availability state and provide add-to-cart actions.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-10",
-      "title": "Required menu item injection on the frontend",
-      "synonyms": [
-        "REQUIRED_MENU_ITEMS",
-        "ensureRequiredMenuItems",
-        "fallback menu seed"
-      ],
-      "description": "Ensures certain menu items (e.g., \"Chilly Chicken\") always appear in the UI by merging a required list into fetched backend results when missing.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-11",
-      "title": "Menu item image support (upload + display + fallbacks)",
-      "synonyms": [
-        "ExternalBlob",
-        "fileToBytes",
-        "validateImageFile",
-        "getDirectURL"
-      ],
-      "description": "Admin UI supports selecting one optional image (JPEG/PNG/WebP up to 5MB), previewing it, and tracking upload progress when converting to an ExternalBlob before adding the menu item. Customer UI displays uploaded images when present, otherwise uses mapped/static fallback images.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-12",
-      "title": "Per-user cart management",
-      "synonyms": [
-        "addToCart",
-        "removeFromCart",
-        "getCartItems",
-        "clearCart"
-      ],
-      "description": "Backend stores a cart per user principal with endpoints to add/remove/list/clear items (user role required). Frontend shows cart contents, supports item removal, and shows a cart count badge in the header.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-13",
-      "title": "Checkout and order placement with fixed delivery fee",
-      "synonyms": [
-        "placeOrder",
-        "CartPage",
-        "delivery fee"
-      ],
-      "description": "Cart page collects customer name/phone/address and optional notes, computes totals with a fixed delivery fee (₹25), places the order via the backend, clears the cart, and navigates to order history on success.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-14",
-      "title": "Order history and admin order management",
-      "synonyms": [
-        "getUserOrders",
-        "getAllOrders",
-        "OrdersPage",
-        "Admin Orders tab"
-      ],
-      "description": "Users can view their own order history sorted by timestamp and see status badges/icons. Admins can view all orders with customer details and update status (including cancel) via UI controls.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-15",
-      "title": "Live active orders feed with admin-only polling and notifications",
-      "synonyms": [
-        "getAllActiveOrders",
-        "LiveOrdersView",
-        "polling 5s",
-        "new order toast"
-      ],
-      "description": "Backend provides an admin-only endpoint returning active orders (excluding delivered/cancelled). Frontend polls every 5 seconds (including background) and shows notifications only for newly appearing orders after the initial load; admins can update status or cancel from the live view.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-16",
-      "title": "User profile onboarding and persistence",
-      "synonyms": [
-        "FoodCourtProfile",
-        "getCallerUserProfile",
-        "saveCallerUserProfile",
-        "ProfileSetupModal"
-      ],
-      "description": "Backend stores a per-user profile (name/email/phone/address). Frontend prompts first-time authenticated users to complete a profile modal and uses stored profile data to prefill checkout fields.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-17",
-      "title": "Storage maintenance and cycles top-up endpoints",
-      "synonyms": [
-        "MixinStorage",
-        "_caffeineStorageBlobsToDelete",
-        "_caffeineStorageConfirmBlobDeletion",
-        "_caffeineStorageRefillCashier"
-      ],
-      "description": "Storage mixin exposes maintenance endpoints to query and prune dead blobs, check blob liveness, refresh authorized gateway principals, and top up a cashier canister with cycles (cashier-only).",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-18",
-      "title": "Menu search helper endpoints and search history recording (backend)",
-      "synonyms": [
-        "getMenuByCategory",
-        "searchMenuByName",
-        "filterMenuByPriceRange",
-        "addSearchHistory"
-      ],
-      "description": "Backend provides helper query endpoints for category filtering, name search, and price range filtering, plus an endpoint to record per-user search history (user role required).",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-19",
-      "title": "Responsive layout with header/footer navigation and theming",
-      "synonyms": [
-        "Header",
-        "Footer",
-        "mobile sheet menu",
-        "next-themes"
-      ],
-      "description": "Provides a shared layout with sticky header navigation (desktop and mobile), login/logout controls, cart badge, and a footer showing restaurant contact info. Supports light/dark themes via next-themes and Tailwind OKLCH design tokens.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "feature-on-the-frontend-automatically-start-live-location-sharing-immediately-after-a-successful-checkout-order-placement-requesting-browser-geolocation-permission-and-sending-updates-to-the-backend-once-per-second-while-the-order-remains-active",
-      "title": "On the frontend, automatically start live location sharing immediately after a successful checkout (order placement), requesting browser geolocation permission and sending updates to the backend once per second while the order remains active.",
+      "id": "feature-update-the-admin-ui-to-remove-restaurant-rejected-orders-from-admin-pages-without-affecting-non-admin-pages-customer-restaurant-views-specifically-the-admin-dashboard-all-orders-list-should-not-render-orders-with-status-rejected",
+      "title": "Update the admin UI to remove restaurant-rejected orders from admin pages without affecting non-admin pages (customer/restaurant views). Specifically, the Admin Dashboard “All Orders” list should not render orders with status Rejected.",
       "reqIds": [
         "REQ-3"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-update-the-admin-dashboard-s-live-orders-ui-to-display-each-active-order-s-current-live-location-lat-lng-and-how-recently-it-was-updated-refreshing-the-live-orders-feed-every-1-second-to-match-the-location-update-frequency",
-      "title": "Update the Admin Dashboard’s Live Orders UI to display each active order’s current live location (lat/lng) and how recently it was updated, refreshing the live orders feed every 1 second to match the location update frequency.",
-      "reqIds": [
-        "REQ-4"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-add-extend-typed-react-query-hooks-to-support-sending-customer-live-location-updates-and-consuming-live-location-data-in-the-admin-live-orders-feed-without-modifying-any-immutable-frontend-paths",
-      "title": "Add/extend typed React Query hooks to support sending customer live location updates and consuming live location data in the admin live orders feed, without modifying any immutable frontend paths.",
-      "reqIds": [
-        "REQ-5"
       ],
       "version": 1
     }
@@ -274,54 +22,34 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Share customer's live location with the restaurant after order completion: automatically start location sharing post-checkout, update every 1s, and display the live location in the Admin dashboard (Live Orders area).",
+      "summary": "When an admin rejects any order, permanently delete the order from the backend and make it immediately disappear from the admin dashboard (all order types).",
       "reqIds": [],
-      "status": "in_progress"
+      "status": "pending"
     },
     {
       "id": "AR-2",
-      "summary": "Extend the backend live order model to include the customer’s latest live location (latitude/longitude) and a last-updated timestamp, and return this data in the existing admin live orders feed used by the Admin Dashboard (Live Orders area).",
+      "summary": "When a restaurant rejects an order, remove that order from the admin dashboard only (restaurant view unaffected).",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "When an admin rejects an order, permanently delete the order from backend state so it no longer appears in any admin queries.",
       "reqIds": [
         "REQ-1"
       ],
       "status": "pending"
     },
     {
-      "id": "AR-3",
-      "summary": "Add a backend endpoint for customers to push their current location for a specific order, enforcing authorization so only the user who placed the order can update that order’s live location; reject updates for orders that are delivered or cancelled.",
+      "id": "AR-4",
+      "summary": "Ensure admin live orders endpoints do not return rejected orders, so that if an order’s status becomes #rejected (e.g., via restaurant rejection workflow), it is removed from the admin live orders view.",
       "reqIds": [
         "REQ-2"
       ],
       "status": "pending"
     }
   ],
-  "architectural_notes": [
-    "Internet Computer dapp architecture: React SPA frontend calling a Motoko canister via a generated actor interface.",
-    "Authorization is implemented as RBAC (admin/user/guest) with an access-control module and a Motoko mixin included into the main canister.",
-    "Admin bootstrapping uses a shared initialization call that compares a user-provided secret to an environment variable token (CAFFEINE_ADMIN_TOKEN).",
-    "Frontend backend-access is centralized in custom hooks built on @tanstack/react-query (queries/mutations, cache keys, invalidation, conditional enablement).",
-    "Actor creation is identity-aware (anonymous vs authenticated) and is recreated when the principal changes; dependent React Query caches are invalidated/refetched on actor change.",
-    "Menu item images use an ExternalBlob abstraction (upload bytes + direct URL) backed by a storage mixin providing maintenance endpoints.",
-    "Live orders monitoring is implemented via polling (5s interval, including background refetch) rather than push/subscriptions.",
-    "Single-tenant constraint is enforced throughout using a hardcoded restaurant UUID (\"snr-food-court\") and fixed restaurant metadata.",
-    "UI uses TailwindCSS + shadcn/ui components, with next-themes for light/dark mode and sonner toasts for notifications.",
-    "App navigation is handled via local React state (no URL router), switching between Home/Cart/Orders/Admin pages."
-  ],
-  "known_issues": [
-    "Backend defines a default menuItemsList but never loads it into the menuItems Map, so the canister starts with an empty menu unless an admin adds items.",
-    "Canister state uses in-memory (non-stable) variables/maps/lists; upgrades risk losing menu, carts, orders, profiles, roles, and counters without stable persistence/migrations.",
-    "Cart semantics: addToCart always appends a new line item; repeated adds can create duplicates instead of merging quantities.",
-    "updateCartItems adds items with price = 0 (\"to be implemented\"), which can break total computations if this endpoint is used.",
-    "markOrderAsDelivered updates the order status but does not actually update the liveOrders list (it creates an unused updatedLiveOrder).",
-    "Storage environment variable appears misspelled as CAFFFEINE_STORAGE_CASHIER_PRINCIPAL (triple 'F'), increasing deployment misconfiguration risk.",
-    "_caffeineStorageUpdateGatewayPrincipals has no explicit authorization check; any caller can trigger a refresh of authorized gateway principals.",
-    "Some frontend queries are enabled whenever an actor exists; anonymous calls to endpoints requiring #user/#admin will trap on the backend rather than being fully gated client-side.",
-    "frontend/src/pages/RestaurantPage.tsx is an empty placeholder, suggesting an unfinished/unused route/page.",
-    "Duplicate theme variable definitions exist in both frontend/index.css and frontend/src/index.css, which may cause inconsistent styling depending on which file is imported."
-  ],
-  "isFixRequest": false,
-  "gameProjectType": "none",
-  "projectName": "SNR Food Court Food Delivery Platform",
+  "projectName": "Remove restaurant-rejected orders from admin UI and permanently delete admin-rejected orders",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

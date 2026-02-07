@@ -1,65 +1,63 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-05T14:24:30.309Z",
-  "summary": "The diff clearly adds a frontend live-location sharing hook and wires it into the post-checkout/order flow, plus UI work in the Admin Live Orders view. However, the backend changes required to (a) extend the live order model returned to admins and (b) add an authorized location-update endpoint are not evidenced in the provided backend diff excerpt. The diff also introduces several unrelated frontend features (menu item images/uploads, styling/theme utilities) that were not requested.",
+  "generatedAt": "2026-02-07T11:18:04.946Z",
+  "summary": "Frontend admin UI now filters out rejected orders in AdminDashboard “All Orders” and LiveOrdersView, but the diff summary does not provide evidence that the backend rejectOrder permanently deletes orders or that getAllActiveOrders excludes #rejected as required. Several unrelated frontend enhancements (image upload, live location sharing, required menu items) also appear to have been implemented without being requested.",
   "missing_requirements": [
     {
       "id": "REQ-1",
-      "requirement": "Extend the backend live order model to include the customer’s latest live location (latitude/longitude) and a last-updated timestamp, and return this data in the existing admin live orders feed.",
-      "reason": "Although a migration module defines new fields (currentLatitude/currentLongitude/lastLocationUpdate), the provided backend/main.mo excerpt does not show the live order type being extended nor the admin live orders feed including these fields.",
+      "requirement": "When an admin rejects an order, permanently delete the order from backend state (orders map, liveOrders, and any tracking state) while preserving admin-only authorization.",
+      "reason": "The provided backend/main.mo diff excerpt shows type definitions and migration wiring but does not show rejectOrder removing the order from orders, liveOrders, or clearing orderStatusTracking (or equivalent tracking state).",
       "evidence": [
-        "backend/migration.mo",
-        "backend/main.mo (truncated)"
+        "backend/main.mo"
       ]
     },
     {
       "id": "REQ-2",
-      "requirement": "Add a backend endpoint for customers to push their current location for a specific order, enforcing authorization so only the user who placed the order can update that order’s live location; reject updates for orders that are delivered or cancelled.",
-      "reason": "The diff summary does not show any new backend actor method/endpoint for updating order location, nor any authorization/status checks in backend/main.mo (excerpt is truncated before relevant sections).",
+      "requirement": "Ensure getAllActiveOrders excludes orders with status #rejected so rejected orders disappear from the admin Live Orders view on next poll/refetch.",
+      "reason": "The diff summary does not show backend logic for getAllActiveOrders filtering out #rejected (only a frontend-side defensive filter is shown).",
       "evidence": [
-        "backend/main.mo (truncated)"
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "requirement": "Refresh the admin live orders feed every 1 second and show an English fallback for orders without location data.",
-      "reason": "LiveOrdersView.tsx shows added location-related UI helpers (e.g., timestamp formatting), but the provided excerpt does not show the query polling interval being changed to 1s nor the explicit fallback text for missing location.",
-      "evidence": [
-        "frontend/src/components/LiveOrdersView.tsx (truncated)",
-        "frontend/src/hooks/useQueries.ts (truncated)"
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "requirement": "Add/extend typed React Query hooks to support sending customer live location updates and consuming live location data in the admin live orders feed.",
-      "reason": "The new live location sharing hook imports useUpdateCustomerLocationOnOrder, and useQueries.ts imports UpdateOrderLocationInput, but the truncated excerpt does not include the actual mutation/query definitions that implement these hooks and type-safe consumption.",
-      "evidence": [
-        "frontend/src/hooks/useLiveLocationSharing.ts",
-        "frontend/src/hooks/useQueries.ts (truncated)"
+        "backend/main.mo",
+        "frontend/src/components/LiveOrdersView.tsx"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Menu item image upload / blob-storage related UI enhancements in the Admin dashboard and menu display (uploaded food photos, upload progress, fallback image logic).",
-      "reason": "Not requested by any REQ; BuildRequest focuses only on live location sharing and admin live orders display/polling.",
+      "description": "Added a backend migration module and wired migration into the main actor.",
+      "reason": "The BuildRequest does not mention adding/using a migration module; it only specifies behavior changes for rejected orders.",
       "evidence": [
-        "frontend-file-summaries.txt (AdminDashboard.tsx, HomePage.tsx, menuItemImage.ts)"
+        "backend/migration.mo",
+        "backend/main.mo"
       ]
     },
     {
-      "description": "Global styling change introducing an OKLCH color system and a warm food-themed palette.",
-      "reason": "Not requested; unrelated to live location sharing.",
+      "description": "Admin dashboard menu item single-image upload flow and related image utilities/progress handling.",
+      "reason": "The BuildRequest is about rejected orders behavior; it does not request menu item image upload changes.",
       "evidence": [
-        "frontend-file-summaries.txt (frontend/src/index.css)"
+        "frontend/src/pages/AdminDashboard.tsx",
+        "frontend-file-summaries.txt"
       ]
     },
     {
-      "description": "Utility module for required menu items (e.g., merging missing required items into fetched menu lists).",
-      "reason": "Not requested; unrelated to live location sharing.",
+      "description": "Home page behavior change to prioritize displaying uploaded menu item images from blob storage (with fallbacks).",
+      "reason": "Not requested by the BuildRequest (scope is admin order rejection behavior).",
       "evidence": [
-        "frontend-file-summaries.txt (frontend/src/utils/requiredMenuItems.ts)"
+        "frontend-file-summaries.txt"
+      ]
+    },
+    {
+      "description": "Introduced/modified live location sharing behavior for active orders and related UI status alerts.",
+      "reason": "Not requested by the BuildRequest and explicitly outside the scope (no new real-time changes requested).",
+      "evidence": [
+        "frontend-file-summaries.txt"
+      ]
+    },
+    {
+      "description": "Added/modified required menu items utility (e.g., enforcing presence of certain items).",
+      "reason": "Not requested by the BuildRequest.",
+      "evidence": [
+        "frontend-file-summaries.txt"
       ]
     }
   ],
@@ -69,10 +67,7 @@
     "backend/migration.mo",
     "frontend-file-summaries.txt",
     "frontend/src/components/LiveOrdersView.tsx",
-    "frontend/src/hooks/useLiveLocationSharing.ts",
-    "frontend/src/hooks/useQueries.ts",
-    "frontend/src/pages/CartPage.tsx",
-    "frontend/src/pages/OrdersPage.tsx",
+    "frontend/src/pages/AdminDashboard.tsx",
     "project_state.json"
   ]
 }
